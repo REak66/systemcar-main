@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import { useI18n } from 'vue-i18n'
 import AppLayout from '@/Components/AppLayout.vue'
@@ -11,6 +11,14 @@ const { t } = useI18n()
 const props = defineProps({ users: Object })
 
 const deleteTarget = ref(null)
+const loading = ref(false)
+
+let stopStart, stopFinish
+onMounted(() => {
+  stopStart = router.on('start', () => { loading.value = true })
+  stopFinish = router.on('finish', () => { loading.value = false })
+})
+onUnmounted(() => { stopStart?.(); stopFinish?.() })
 
 function confirmDelete(user) {
   deleteTarget.value = user
@@ -66,6 +74,14 @@ function formatDate(d) {
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-50">
+            <!-- Skeleton rows -->
+            <template v-if="loading">
+              <tr v-for="n in 8" :key="'sk-' + n" class="animate-pulse [animation-duration:5s]">
+                <td v-for="c in 8" :key="c" class="px-4 py-3"><div class="h-4 bg-gray-200 rounded"></div></td>
+              </tr>
+            </template>
+            <!-- Data rows -->
+            <template v-else>
             <tr v-for="(user, i) in users.data" :key="user.id" :class="user.deleted_at ? 'opacity-50 bg-gray-50' : 'hover:bg-gray-50'">
               <td class="px-4 py-3 text-gray-500">{{ users.from + i }}</td>
               <td class="px-4 py-3 font-medium text-gray-800">{{ user.name }}</td>
@@ -115,6 +131,7 @@ function formatDate(d) {
             <tr v-if="!users.data || users.data.length === 0">
               <td colspan="8" class="px-4 py-8 text-center text-gray-400">{{ t('no_data') }}</td>
             </tr>
+            </template>
           </tbody>
         </table>
       </div>

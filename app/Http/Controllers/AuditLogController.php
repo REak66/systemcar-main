@@ -8,6 +8,9 @@ class AuditLogController extends Controller {
             ->when($request->from_date,fn($q)=>$q->whereDate('created_at','>=',$request->from_date))
             ->when($request->to_date,fn($q)=>$q->whereDate('created_at','<=',$request->to_date))
             ->orderBy('created_at','desc')->paginate(50)->withQueryString();
-        return Inertia::render('AuditLogs/Index',compact('logs'));
+        return Inertia::render('AuditLogs/Index',[
+            'logs'    => $logs,
+            'filters' => $request->only(['action','from_date','to_date']),
+        ]);
     }
 }

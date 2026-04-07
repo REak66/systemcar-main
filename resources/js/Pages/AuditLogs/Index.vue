@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import { useI18n } from 'vue-i18n'
 import AppLayout from '@/Components/AppLayout.vue'
@@ -7,11 +7,22 @@ import Pagination from '@/Components/Pagination.vue'
 
 const { t } = useI18n()
 
-const props = defineProps({ logs: Object })
+const props = defineProps({
+  logs: Object,
+  filters: Object,
+})
 
-const actionFilter = ref('')
-const fromDate = ref('')
-const toDate = ref('')
+const actionFilter = ref(props.filters?.action ?? '')
+const fromDate = ref(props.filters?.from_date ?? '')
+const toDate = ref(props.filters?.to_date ?? '')
+const loading = ref(false)
+
+let stopStart, stopFinish
+onMounted(() => {
+  stopStart = router.on('start', () => { loading.value = true })
+  stopFinish = router.on('finish', () => { loading.value = false })
+})
+onUnmounted(() => { stopStart?.(); stopFinish?.() })
 
 function applyFilter() {
   router.get(route('audit-logs.index'), {
@@ -90,6 +101,14 @@ function formatJson(obj) {
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-50">
+            <!-- Skeleton rows -->
+            <template v-if="loading">
+              <tr v-for="n in 8" :key="'sk-' + n" class="animate-pulse [animation-duration:5s]">
+                <td v-for="c in 8" :key="c" class="px-4 py-3"><div class="h-4 bg-gray-200 rounded"></div></td>
+              </tr>
+            </template>
+            <!-- Data rows -->
+            <template v-else>
             <tr v-for="log in logs.data" :key="log.id" class="hover:bg-gray-50">
               <td class="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{{ formatDate(log.created_at) }}</td>
               <td class="px-4 py-3 text-gray-700">{{ log.user?.name ?? '—' }}</td>
@@ -110,6 +129,7 @@ function formatJson(obj) {
             <tr v-if="!logs.data || logs.data.length === 0">
               <td colspan="8" class="px-4 py-8 text-center text-gray-400">{{ t('no_data') }}</td>
             </tr>
+            </template>
           </tbody>
         </table>
       </div>
