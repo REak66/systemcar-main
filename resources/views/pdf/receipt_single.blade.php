@@ -65,7 +65,7 @@
     </div>
 
     {{-- Document Title --}}
-    <div class="doc-title">
+    <div class="doc-title" style="font-family: 'KhmerOS', sans-serif;">
         <div class="doc-title-kh">បង្កាន់ដៃទទួលប្រាក់</div>
         <div class="doc-title-en">OFFICIAL RECEIPT</div>
     </div>
