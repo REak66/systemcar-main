@@ -5,10 +5,18 @@
     <style>
         @font-face {
             font-family: 'KhmerOS';
-            src: url('file://{{ public_path('fonts/KhmerOS.ttf') }}') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            src: url('file://{{ storage_path('fonts/KhmerOSBattambang-Regular.ttf') }}') format('truetype');
+        }
+        @font-face {
+            font-family: 'KhmerOS';
+            font-weight: bold;
+            font-style: normal;
+            src: url('file://{{ storage_path('fonts/KhmerOSBattambang-Bold.ttf') }}') format('truetype');
         }
         @page { margin: 15mm; }
-        body { font-family: 'KhmerOS', sans-serif; font-size: 10px; color: #333; margin: 0; line-height: 1.375; }
+        body { font-family: 'KhmerOS', sans-serif; font-size: 10px; color: #333; margin: 0; line-height: 1.5; }
         .header { display: table; width: 100%; margin-bottom: 4px; }
         .header-left { display: table-cell; vertical-align: top; }
         .byd-badge { display: inline-block; background: #dc2626; color: #fff; font-weight: bold; font-size: 20px; padding: 2px 7px; letter-spacing: 4px; line-height: 1.1; margin-right: 10px; vertical-align: top; margin-top: -3px; }
@@ -58,7 +66,7 @@
 
     {{-- Document Title --}}
     <div class="doc-title">
-        <div class="doc-title-kh">ឯកសារទទួលប្រាក់</div>
+        <div class="doc-title-kh">បង្កាន់ដៃទទួលប្រាក់</div>
         <div class="doc-title-en">
             {{ $invoice->invoice_type === 'car_sale' ? 'OFFICIAL RECEIPT' : 'SERVICE INVOICE' }}
         </div>
@@ -92,7 +100,7 @@
                 {{ $invoice->creator?->name }}
             </td>
             <td style="text-align:right">
-                <span class="label">ការផ្ទេរប្រាក់តាមធនាគារ /Bank Transfer: ✓</span>
+                <span class="label">ផ្ទេរតាមធនាគារ /Bank Transfer: ✓</span>
                 <strong> {{ $invoice->bank_reference }}</strong>
             </td>
         </tr>
@@ -138,9 +146,7 @@
                 <td class="center" style="vertical-align: top; padding-top: 5px;">1</td>
                 <td style="vertical-align: top; padding-top: 5px; min-height: 80px;">
                     <div>Model: {{ $invoice->car_model }}</div>
-                    @if($invoice->notes)
-                        <div style="margin-top:2px;">VIN: {{ $invoice->notes }}</div>
-                    @endif
+                    <div style="margin-top:2px;">VIN: {{ $invoice->notes ?? '' }}</div>
                 </td>
                 <td class="center" style="vertical-align: top; padding-top: 5px;">{{ $invoice->quantity }}</td>
                 <td class="right" style="vertical-align: top; padding-top: 5px;">

@@ -5,10 +5,18 @@
     <style>
         @font-face {
             font-family: 'KhmerOS';
-            src: url('file://{{ public_path('fonts/KhmerOS.ttf') }}') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            src: url('file://{{ storage_path('fonts/KhmerOSBattambang-Regular.ttf') }}') format('truetype');
+        }
+        @font-face {
+            font-family: 'KhmerOS';
+            font-weight: bold;
+            font-style: normal;
+            src: url('file://{{ storage_path('fonts/KhmerOSBattambang-Bold.ttf') }}') format('truetype');
         }
         @page { margin: 15mm; }
-        body { font-family: 'KhmerOSBattambang', sans-serif; font-size: 10px; color: #333; margin: 0; line-height: 1.5; }
+        body { font-family: 'KhmerOS', sans-serif; font-size: 10px; color: #333; margin: 0; line-height: 1.5; }
         .header { display: table; width: 100%; margin-bottom: 4px; }
         .header-left { display: table-cell; vertical-align: top; }
         .header-right { display: table-cell; vertical-align: top; text-align: right; font-size: 9px; white-space: nowrap; }
@@ -58,7 +66,7 @@
 
     {{-- Document Title --}}
     <div class="doc-title">
-        <div class="doc-title-kh">ឯកសារទទួលប្រាក់</div>
+        <div class="doc-title-kh">បង្កាន់ដៃទទួលប្រាក់</div>
         <div class="doc-title-en">OFFICIAL RECEIPT</div>
     </div>
 
@@ -68,12 +76,12 @@
     <table class="info">
         <tr>
             <td style="width:50%; padding-right:8px;">
-                <span class="label">តាមទទួលពី /Received From:</span>
+                <span class="label">បានទទួលពី /Received From:</span>
                 <strong> {{ $receipt->customer_name }}</strong>
             </td>
             <td style="text-align:right">
                 <span class="label">កាលបរិច្ឆេទ /Date :</span>
-                <strong> {{ $receipt->date->format('d-M-Y') }}</strong>
+                <strong> {{ $receipt->date->format('d-m-y') }}</strong>
             </td>
         </tr>
         <tr>
@@ -91,7 +99,7 @@
                 <span> {{ $receipt->creator?->name }}</span>
             </td>
             <td style="text-align:right">
-                <span class="label">ការផ្ទេរប្រាក់តាមធនាគារ /Bank Transfer: ✓</span>
+                <span class="label">ផ្ទេរតាមធនាគារ /Bank Transfer: ✓</span>
                 <strong> {{ $receipt->bank_reference }}</strong>
             </td>
         </tr>
@@ -120,11 +128,11 @@
     <table class="items">
         <thead>
             <tr>
-                <th style="width:24px;">No<br><small>ឡ.វ</small></th>
-                <th>Description<br><small>បណ្តាយស្ទ័ររឺ</small></th>
-                <th style="width:48px;">Quantity<br><small>ចំណួន</small></th>
-                <th style="width:100px;">Unit Price<br><small>តម្លៃតា</small></th>
-                <th style="width:90px;">Amount<br><small>តម្លៃទំ</small></th>
+                <th style="width:24px;">No<br><small>ល.រ</small></th>
+                <th>Description<br><small>បរិយាយមុខទំនិញ</small></th>
+                <th style="width:48px;">Quantity<br><small>បរិមាណ</small></th>
+                <th style="width:100px;">Unit Price<br><small>ថ្លៃឯកតា</small></th>
+                <th style="width:90px;">Amount<br><small>ថ្លៃទំនិញ</small></th>
             </tr>
         </thead>
         <tbody>
@@ -132,9 +140,7 @@
                 <td class="center" style="vertical-align: top; padding-top: 5px;">1</td>
                 <td style="vertical-align: top; padding-top: 5px; min-height: 80px;">
                     <div>Model: {{ $receipt->car_model }}</div>
-                    @if($receipt->notes)
-                        <div style="margin-top:2px;">VIN: {{ $receipt->notes }}</div>
-                    @endif
+                    <div style="margin-top:2px;">VIN: {{ $receipt->notes ?? '' }}</div>
                 </td>
                 <td class="center" style="vertical-align: top; padding-top: 5px;">{{ $receipt->quantity }}</td>
                 <td class="right" style="vertical-align: top; padding-top: 5px;">
@@ -182,11 +188,11 @@
     {{-- Signatures --}}
     <div class="signatures">
         <div class="sig-block">
-            <div class="sig-title">ចូបដែលបង់</div>
+            <div class="sig-title">ទទួលដោយ</div>
             <div class="sig-sub">Received By:</div>
             <div class="sig-line">
                 <div>ឈ្មោះ: {{ $receipt->creator?->name }}</div>
-                <div>កាលបរិច្ឆេទ: {{ $receipt->date->format('d-M-Y') }}</div>
+                <div>កាលបរិច្ឆេទ: {{ $receipt->date->format('d-m-y') }}</div>
             </div>
         </div>
         <div class="sig-block">

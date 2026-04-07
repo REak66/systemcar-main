@@ -118,20 +118,26 @@ class TelegramService
 
     public function sendInvoiceDownloadAlert(Invoice $invoice): void
     {
-        $type = ucwords(str_replace('_', ' ', $invoice->invoice_type));
-        $by   = Auth::check() ? Auth::user()->name : 'System';
-        $date = $invoice->date instanceof \Carbon\Carbon ? $invoice->date->format('d/m/Y') : \Carbon\Carbon::parse($invoice->date)->format('d/m/Y');
+        $type     = ucwords(str_replace('_', ' ', $invoice->invoice_type));
+        $category = ucwords(str_replace('_', ' ', $invoice->payment_category));
+        $by       = Auth::check() ? Auth::user()->name : 'System';
+        $date     = $invoice->date instanceof \Carbon\Carbon ? $invoice->date->format('d/m/Y') : \Carbon\Carbon::parse($invoice->date)->format('d/m/Y');
 
-        $msg = "📥 *Invoice Downloaded*\n"
-             . "📋 Type: {$type}\n"
-             . "🔢 Doc: `{$invoice->invoice_number}`\n"
-             . "📅 Date: {$date}\n"
-             . "👤 Customer: {$invoice->customer_name}\n"
-             . "🚘 Car: {$invoice->car_model}\n"
-             . "💰 Amount: {$invoice->currency} " . number_format((float) $invoice->grand_total, 2) . "\n"
-             . "👨‍💼 Downloaded By: {$by}";
+        $caption = "📥 *Invoice Downloaded*\n"
+                 . "📋 Type: {$type}\n"
+                 . "🔢 Doc: `{$invoice->invoice_number}`\n"
+                 . "📅 Date: {$date}\n"
+                 . "👤 Customer: {$invoice->customer_name}\n"
+                 . "🚘 Car: {$invoice->car_model}\n"
+                 . "💰 Amount: {$invoice->currency} " . number_format((float) $invoice->grand_total, 2) . "\n"
+                 . "🏷️ Category: {$category}\n"
+                 . "👨‍💼 Downloaded By: {$by}";
 
-        $this->broadcast($msg);
+        $invoice->loadMissing('creator');
+        $pdf      = Pdf::loadView('pdf.invoice_single', compact('invoice'))->output();
+        $filename = $invoice->invoice_number . '-downloaded.pdf';
+
+        $this->broadcastDocument($filename, $pdf, $caption);
     }
 
     public function sendInvoiceUpdatedAlert(Invoice $invoice): void
@@ -238,16 +244,24 @@ class TelegramService
 
     public function sendReceiptDownloadAlert(Receipt $receipt): void
     {
-        $by = Auth::check() ? Auth::user()->name : 'System';
+        $category = ucwords(str_replace('_', ' ', $receipt->payment_category));
+        $by       = Auth::check() ? Auth::user()->name : 'System';
+        $date     = $receipt->date instanceof \Carbon\Carbon ? $receipt->date->format('d/m/Y') : \Carbon\Carbon::parse($receipt->date)->format('d/m/Y');
 
-        $msg = "📥 *Receipt Downloaded*\n"
-             . "🔢 Doc: `{$receipt->receipt_number}`\n"
-             . "👤 Customer: {$receipt->customer_name}\n"
-             . "🚘 Car: {$receipt->car_model}\n"
-             . "💰 Amount: {$receipt->currency} " . number_format((float) $receipt->total_amount, 2) . "\n"
-             . "👨‍💼 Downloaded By: {$by}";
+        $caption = "📥 *Receipt Downloaded*\n"
+                 . "🔢 Doc: `{$receipt->receipt_number}`\n"
+                 . "📅 Date: {$date}\n"
+                 . "👤 Customer: {$receipt->customer_name}\n"
+                 . "🚘 Car: {$receipt->car_model}\n"
+                 . "💰 Amount: {$receipt->currency} " . number_format((float) $receipt->total_amount, 2) . "\n"
+                 . "🏷️ Category: {$category}\n"
+                 . "👨‍💼 Downloaded By: {$by}";
 
-        $this->broadcast($msg);
+        $receipt->loadMissing('creator');
+        $pdf      = Pdf::loadView('pdf.receipt_single', compact('receipt'))->output();
+        $filename = $receipt->receipt_number . '-downloaded.pdf';
+
+        $this->broadcastDocument($filename, $pdf, $caption);
     }
 
     public function sendReportDownloadAlert(string $reportType, string $userName, string $format): void
@@ -263,5 +277,61 @@ class TelegramService
              . "🕐 At: {$now}";
 
         $this->broadcast($msg);
+    }
+
+    // ─── Scheduled PDF Reports ───────────────────────────────────────────────
+
+    private function buildAndBroadcastReport(Carbon $start, Carbon $end, string $label): void
+    {
+        $receipts = Receipt::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->orderBy('date')
+            ->get();
+
+        $invoices = Invoice::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->orderBy('date')
+            ->get();
+
+        $receiptTotal = $receipts->sum('total_amount');
+        $invoiceTotal = $invoices->sum('grand_total');
+        $vatTotal     = $invoices->sum('vat_amount');
+
+        $pdf = Pdf::loadView('pdf.report', [
+            'receipts' => $receipts,
+            'invoices' => $invoices,
+            'start'    => $start,
+            'end'      => $end,
+        ])->setPaper('a4', 'landscape')->output();
+
+        $filename = strtolower($label) . '-report-' . $start->format('Y-m-d') . '.pdf';
+
+        $caption = "📊 *{$label} Financial Report*\n"
+                 . "📅 Period: {$start->format('d/m/Y')} → {$end->format('d/m/Y')}\n"
+                 . "🧾 Receipts: {$receipts->count()} | Total: " . number_format($receiptTotal, 2) . "\n"
+                 . "📋 Invoices: {$invoices->count()} | Total: " . number_format($invoiceTotal, 2) . "\n"
+                 . "🏷️ VAT Collected: " . number_format($vatTotal, 2) . "\n"
+                 . "🕐 Generated: " . Carbon::now()->format('d/m/Y H:i');
+
+        $this->broadcastDocument($filename, $pdf, $caption);
+    }
+
+    public function sendDailyReport(): void
+    {
+        $start = Carbon::yesterday()->startOfDay();
+        $end   = Carbon::yesterday()->endOfDay();
+        $this->buildAndBroadcastReport($start, $end, 'Daily');
+    }
+
+    public function sendWeeklyReport(): void
+    {
+        $start = Carbon::now()->subWeek()->startOfWeek();
+        $end   = Carbon::now()->subWeek()->endOfWeek();
+        $this->buildAndBroadcastReport($start, $end, 'Weekly');
+    }
+
+    public function sendMonthlyReport(): void
+    {
+        $start = Carbon::now()->subMonth()->startOfMonth();
+        $end   = Carbon::now()->subMonth()->endOfMonth();
+        $this->buildAndBroadcastReport($start, $end, 'Monthly');
     }
 }
