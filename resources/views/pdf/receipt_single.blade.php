@@ -79,7 +79,7 @@
                 <span class="label">បានទទួលពី /Received From:</span>
                 <strong> {{ $receipt->customer_name }}</strong>
             </td>
-            <td style="text-align:right">
+            <td style="text-align:right; font-family: 'KhmerOS', sans-serif;">
                 <span class="label">កាលបរិច្ឆេទ /Date :</span>
                 <strong> {{ $receipt->date->format('d-m-y') }}</strong>
             </td>
@@ -89,7 +89,7 @@
                 <span class="label">លេខទូរស័ព្ទអតិថិជន/ Customer number :</span>
                 <span> {{ $receipt->customer_phone }}</span>
             </td>
-            <td style="text-align:right">
+            <td style="text-align:right; font-family: 'KhmerOS', sans-serif;">
                 <span class="label">សាច់ប្រាក់ /Cash :</span>
             </td>
         </tr>
@@ -98,7 +98,7 @@
                 <span class="label">អ្នកលក់/Sales:</span>
                 <span> {{ $receipt->creator?->name }}</span>
             </td>
-            <td style="text-align:right">
+            <td style="text-align:right; font-family: 'KhmerOS', sans-serif;">
                 <span class="label">ផ្ទេរតាមធនាគារ /Bank Transfer: ✓</span>
                 <strong> {{ $receipt->bank_reference }}</strong>
             </td>
