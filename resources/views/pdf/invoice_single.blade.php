@@ -5,15 +5,7 @@
     <style>
         @font-face {
             font-family: 'KhmerOS';
-            font-weight: normal;
-            font-style: normal;
-            src: url('file://{{ storage_path('fonts/KhmerOSBattambang-Regular.ttf') }}') format('truetype');
-        }
-        @font-face {
-            font-family: 'KhmerOS';
-            font-weight: bold;
-            font-style: normal;
-            src: url('file://{{ storage_path('fonts/KhmerOSBattambang-Bold.ttf') }}') format('truetype');
+            src: url('{{ public_path('fonts/KhmerOS.ttf') }}');
         }
         @page { margin: 15mm; }
         body { font-family: 'KhmerOS', sans-serif; font-size: 10px; color: #333; margin: 0; line-height: 1.5; }
@@ -78,7 +70,7 @@
         <tr>
             <td style="width:50%">
                 <span class="label">បានទទួលពី /Received From:</span>
-                <strong> {{ $invoice->customer_name }}</strong>
+                <strong @if($invoice->customer_name && preg_match('/[\x{1780}-\x{17FF}]/u', $invoice->customer_name) > 0) style="font-family: 'KhmerOS', sans-serif" @endif> {{ $invoice->customer_name }}</strong>
             </td>
             <td style="text-align:right">
                 <span class="label">កាលបរិច្ឆេទ (Date) :</span>
@@ -88,7 +80,7 @@
         <tr>
             <td>
                 <span class="label">លេខទូរស័ព្ទអតិថិជន/ Customer number :</span>
-                {{ $invoice->customer_phone }}
+                <span>{{ $invoice->customer_phone }}</span>
             </td>
             <td style="text-align:right">
                 <span class="label">សាច់ប្រាក់ / Cash :</span>
@@ -97,11 +89,11 @@
         <tr>
             <td>
                 <span class="label">អ្នកលក់/Sales:</span>
-                {{ $invoice->creator?->name }}
+                <span @if($invoice->creator?->name && preg_match('/[\x{1780}-\x{17FF}]/u', $invoice->creator->name) > 0) style="font-family: 'KhmerOS', sans-serif" @endif>{{ $invoice->creator?->name }}</span>
             </td>
             <td style="text-align:right">
                 <span class="label">ផ្ទេរតាមធនាគារ /Bank Transfer: ✓</span>
-                <strong> {{ $invoice->bank_reference }}</strong>
+                <strong @if($invoice->bank_reference && preg_match('/[\x{1780}-\x{17FF}]/u', $invoice->bank_reference) > 0) style="font-family: 'KhmerOS', sans-serif" @endif> {{ $invoice->bank_reference }}</strong>
             </td>
         </tr>
         <tr style="height:16px;"><td></td><td></td></tr>
@@ -145,8 +137,8 @@
             <tr>
                 <td class="center" style="vertical-align: top; padding-top: 5px;">1</td>
                 <td style="vertical-align: top; padding-top: 5px; min-height: 80px;">
-                    <div>Model: {{ $invoice->car_model }}</div>
-                    <div style="margin-top:2px;">VIN: {{ $invoice->notes ?? '' }}</div>
+                    <div>Model: <span @if($invoice->car_model && preg_match('/[\x{1780}-\x{17FF}]/u', $invoice->car_model) > 0) style="font-family: 'KhmerOS', sans-serif" @endif>{{ $invoice->car_model }}</span></div>
+                    <div style="margin-top:2px;">VIN: <span @if($invoice->notes && preg_match('/[\x{1780}-\x{17FF}]/u', $invoice->notes) > 0) style="font-family: 'KhmerOS', sans-serif" @endif>{{ $invoice->notes ?? '' }}</span></div>
                 </td>
                 <td class="center" style="vertical-align: top; padding-top: 5px;">{{ $invoice->quantity }}</td>
                 <td class="right" style="vertical-align: top; padding-top: 5px;">
@@ -204,7 +196,7 @@
             <div style="font-weight:bold; margin-bottom:4px;">ទទួលដោយ:</div>
             <div style="margin-bottom:28px;">Received By:</div>
             <div class="sig-line">
-                <div>ឈ្មោះ: {{ $invoice->creator?->name }}</div>
+                <div>ឈ្មោះ: <span @if($invoice->creator?->name && preg_match('/[\x{1780}-\x{17FF}]/u', $invoice->creator->name) > 0) style="font-family: 'KhmerOS', sans-serif" @endif>{{ $invoice->creator?->name }}</span></div>
                 <div>កាលបរិច្ឆេទ: {{ $invoice->date->format('d-M-Y') }}</div>
             </div>
         </div>

@@ -3,7 +3,11 @@
 <head>
     <meta charset="utf-8">
     <style>
-        body { font-family: 'DejaVu Sans', sans-serif; font-size: 11px; color: #333; margin: 20px; }
+        @font-face {
+            font-family: 'KhmerOS';
+            src: url('{{ public_path('fonts/KhmerOS.ttf') }}') format('truetype');
+        }
+        body { font-family: 'KhmerOS', sans-serif; font-size: 11px; color: #333; margin: 20px; }
         h1 { font-size: 18px; color: #1e40af; margin-bottom: 4px; }
         h2 { font-size: 13px; color: #374151; margin: 16px 0 6px; }
         .subtitle { color: #666; font-size: 11px; margin-bottom: 10px; }

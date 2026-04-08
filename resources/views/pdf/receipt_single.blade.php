@@ -5,15 +5,7 @@
     <style>
         @font-face {
             font-family: 'KhmerOS';
-            font-weight: normal;
-            font-style: normal;
-            src: url('file://{{ storage_path('fonts/KhmerOSBattambang-Regular.ttf') }}') format('truetype');
-        }
-        @font-face {
-            font-family: 'KhmerOS';
-            font-weight: bold;
-            font-style: normal;
-            src: url('file://{{ storage_path('fonts/KhmerOSBattambang-Bold.ttf') }}') format('truetype');
+            src: url('{{ public_path('fonts/KhmerOS.ttf') }}');
         }
         @page { margin: 15mm; }
         body { font-family: 'KhmerOS', sans-serif; font-size: 10px; color: #333; margin: 0; line-height: 1.5; }
@@ -65,7 +57,7 @@
     </div>
 
     {{-- Document Title --}}
-    <div class="doc-title" style="font-family: 'KhmerOS', sans-serif;">
+    <div class="doc-title">
         <div class="doc-title-kh">បង្កាន់ដៃទទួលប្រាក់</div>
         <div class="doc-title-en">OFFICIAL RECEIPT</div>
     </div>
@@ -77,9 +69,9 @@
         <tr>
             <td style="width:50%; padding-right:8px;">
                 <span class="label">បានទទួលពី /Received From:</span>
-                <strong> {{ $receipt->customer_name }}</strong>
+                <strong @if($receipt->customer_name && preg_match('/[\x{1780}-\x{17FF}]/u', $receipt->customer_name) > 0) style="font-family: 'KhmerOS', sans-serif" @endif> {{ $receipt->customer_name }}</strong>
             </td>
-            <td style="text-align:right; font-family: 'KhmerOS', sans-serif;">
+            <td style="text-align:right;">
                 <span class="label">កាលបរិច្ឆេទ /Date :</span>
                 <strong> {{ $receipt->date->format('d-m-y') }}</strong>
             </td>
@@ -89,18 +81,18 @@
                 <span class="label">លេខទូរស័ព្ទអតិថិជន/ Customer number :</span>
                 <span> {{ $receipt->customer_phone }}</span>
             </td>
-            <td style="text-align:right; font-family: 'KhmerOS', sans-serif;">
+            <td style="text-align:right;">
                 <span class="label">សាច់ប្រាក់ /Cash :</span>
             </td>
         </tr>
         <tr>
             <td style="padding-right:8px;">
                 <span class="label">អ្នកលក់/Sales:</span>
-                <span> {{ $receipt->creator?->name }}</span>
+                <span @if($receipt->creator?->name && preg_match('/[\x{1780}-\x{17FF}]/u', $receipt->creator->name) > 0) style="font-family: 'KhmerOS', sans-serif" @endif> {{ $receipt->creator?->name }}</span>
             </td>
-            <td style="text-align:right; font-family: 'KhmerOS', sans-serif;">
+            <td style="text-align:right;">
                 <span class="label">ផ្ទេរតាមធនាគារ /Bank Transfer: ✓</span>
-                <strong> {{ $receipt->bank_reference }}</strong>
+                <strong @if($receipt->bank_reference && preg_match('/[\x{1780}-\x{17FF}]/u', $receipt->bank_reference) > 0) style="font-family: 'KhmerOS', sans-serif" @endif> {{ $receipt->bank_reference }}</strong>
             </td>
         </tr>
     </table>
@@ -139,8 +131,8 @@
             <tr>
                 <td class="center" style="vertical-align: top; padding-top: 5px;">1</td>
                 <td style="vertical-align: top; padding-top: 5px; min-height: 80px;">
-                    <div>Model: {{ $receipt->car_model }}</div>
-                    <div style="margin-top:2px;">VIN: {{ $receipt->notes ?? '' }}</div>
+                    <div>Model: <span @if($receipt->car_model && preg_match('/[\x{1780}-\x{17FF}]/u', $receipt->car_model) > 0) style="font-family: 'KhmerOS', sans-serif" @endif>{{ $receipt->car_model }}</span></div>
+                    <div style="margin-top:2px;">VIN: <span @if($receipt->notes && preg_match('/[\x{1780}-\x{17FF}]/u', $receipt->notes) > 0) style="font-family: 'KhmerOS', sans-serif" @endif>{{ $receipt->notes ?? '' }}</span></div>
                 </td>
                 <td class="center" style="vertical-align: top; padding-top: 5px;">{{ $receipt->quantity }}</td>
                 <td class="right" style="vertical-align: top; padding-top: 5px;">
@@ -191,7 +183,7 @@
             <div class="sig-title">ទទួលដោយ</div>
             <div class="sig-sub">Received By:</div>
             <div class="sig-line">
-                <div>ឈ្មោះ: {{ $receipt->creator?->name }}</div>
+                <div>ឈ្មោះ: <span @if($receipt->creator?->name && preg_match('/[\x{1780}-\x{17FF}]/u', $receipt->creator->name) > 0) style="font-family: 'KhmerOS', sans-serif" @endif>{{ $receipt->creator?->name }}</span></div>
                 <div>កាលបរិច្ឆេទ: {{ $receipt->date->format('d-m-y') }}</div>
             </div>
         </div>
