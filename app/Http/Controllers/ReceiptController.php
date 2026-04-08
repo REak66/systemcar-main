@@ -2,9 +2,10 @@
 namespace App\Http\Controllers;
 use App\Models\Receipt; use App\Services\DocumentNumberService; use App\Services\AuditLogService; use App\Services\TelegramService;
 use Illuminate\Http\Request; use Illuminate\Support\Facades\Auth; use Inertia\Inertia;
-use Maatwebsite\Excel\Facades\Excel; use App\Exports\ReceiptsExport; use App\Exports\ReceiptTemplateExport; use App\Imports\ReceiptsImport; use Barryvdh\DomPDF\Facade\Pdf;
+use Maatwebsite\Excel\Facades\Excel; use App\Exports\ReceiptsExport; use App\Exports\ReceiptTemplateExport; use App\Imports\ReceiptsImport; use Spatie\Browsershot\Browsershot;
 class ReceiptController extends Controller {
     public function __construct(private DocumentNumberService $doc, private AuditLogService $audit, private TelegramService $telegram) {}
+    private function embedFonts(string $html): string { return preg_replace_callback("/url\\(['\"]?file:\\/\\/([^'\"\\)]+\\.ttf)['\"]?\\)/i", function ($m) { return file_exists($m[1]) ? "url('data:font/truetype;base64," . base64_encode(file_get_contents($m[1])) . "')" : $m[0]; }, $html); }
     public function index(Request $request) {
         $query = Receipt::with('creator');
         if ($request->from_date) $query->whereDate('date','>=',$request->from_date);
@@ -85,6 +86,9 @@ class ReceiptController extends Controller {
         if ($request->to_date) $query->whereDate('date','<=',$request->to_date);
         $receipts=$query->orderBy('date','desc')->get();
         $this->telegram->sendReportDownloadAlert('Receipt', Auth::user()?->name ?? 'Unknown', 'PDF');
-        return Pdf::loadView('pdf.receipts',compact('receipts'))->download('receipts.pdf');
+        $html = view('pdf.receipts', compact('receipts'))->render();
+        $html = $this->embedFonts($html);
+        $pdf = Browsershot::html($html)->setNodeBinary(trim(shell_exec('which node')))->setNpmBinary(trim(shell_exec('which npm')))->format('A4')->margins(15,15,15,15)->showBackground()->waitUntilNetworkIdle()->pdf();
+        return response($pdf, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'attachment; filename="receipts.pdf"']);
     }
 }

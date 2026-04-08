@@ -3,11 +3,11 @@ namespace App\Services;
 use App\Models\Invoice;
 use App\Models\Receipt;
 use App\Models\TelegramConfig;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Spatie\Browsershot\Browsershot;
 
 class TelegramService
 {
@@ -88,7 +88,7 @@ class TelegramService
                  . "👨‍💼 Created By: {$by}";
 
         $invoice->loadMissing('creator');
-        $pdf      = Pdf::loadView('pdf.invoice_single', compact('invoice'))->output();
+        $pdf      = $this->generateInvoicePdf($invoice);
         $filename = $invoice->invoice_number . '-created.pdf';
 
         $this->broadcastDocument($filename, $pdf, $caption);
@@ -110,7 +110,7 @@ class TelegramService
                  . "👨‍💼 Created By: {$by}";
 
         $receipt->loadMissing('creator');
-        $pdf      = Pdf::loadView('pdf.receipt_single', compact('receipt'))->output();
+        $pdf      = $this->generateReceiptPdf($receipt);
         $filename = $receipt->receipt_number . '-created.pdf';
 
         $this->broadcastDocument($filename, $pdf, $caption);
@@ -134,7 +134,7 @@ class TelegramService
                  . "👨‍💼 Downloaded By: {$by}";
 
         $invoice->loadMissing('creator');
-        $pdf      = Pdf::loadView('pdf.invoice_single', compact('invoice'))->output();
+        $pdf      = $this->generateInvoicePdf($invoice);
         $filename = $invoice->invoice_number . '-downloaded.pdf';
 
         $this->broadcastDocument($filename, $pdf, $caption);
@@ -158,7 +158,7 @@ class TelegramService
                  . "👨‍💼 Updated By: {$by}";
 
         $invoice->loadMissing('creator');
-        $pdf      = Pdf::loadView('pdf.invoice_single', compact('invoice'))->output();
+        $pdf      = $this->generateInvoicePdf($invoice);
         $filename = $invoice->invoice_number . '-updated.pdf';
 
         $this->broadcastDocument($filename, $pdf, $caption);
@@ -195,7 +195,7 @@ class TelegramService
                  . "👨‍💼 Updated By: {$by}";
 
         $receipt->loadMissing('creator');
-        $pdf      = Pdf::loadView('pdf.receipt_single', compact('receipt'))->output();
+        $pdf      = $this->generateReceiptPdf($receipt);
         $filename = $receipt->receipt_number . '-updated.pdf';
 
         $this->broadcastDocument($filename, $pdf, $caption);
@@ -258,7 +258,7 @@ class TelegramService
                  . "👨‍💼 Downloaded By: {$by}";
 
         $receipt->loadMissing('creator');
-        $pdf      = Pdf::loadView('pdf.receipt_single', compact('receipt'))->output();
+        $pdf      = $this->generateReceiptPdf($receipt);
         $filename = $receipt->receipt_number . '-downloaded.pdf';
 
         $this->broadcastDocument($filename, $pdf, $caption);
@@ -295,12 +295,7 @@ class TelegramService
         $invoiceTotal = $invoices->sum('grand_total');
         $vatTotal     = $invoices->sum('vat_amount');
 
-        $pdf = Pdf::loadView('pdf.report', [
-            'receipts' => $receipts,
-            'invoices' => $invoices,
-            'start'    => $start,
-            'end'      => $end,
-        ])->setPaper('a4', 'landscape')->output();
+        $pdf = $this->generateReportPdf($receipts, $invoices, $start, $end);
 
         $filename = strtolower($label) . '-report-' . $start->format('Y-m-d') . '.pdf';
 
@@ -333,5 +328,55 @@ class TelegramService
         $start = Carbon::now()->subMonth()->startOfMonth();
         $end   = Carbon::now()->subMonth()->endOfMonth();
         $this->buildAndBroadcastReport($start, $end, 'Monthly');
+    }
+
+    // ─── PDF Helpers ─────────────────────────────────────────────────────────
+
+    private function embedFonts(string $html): string
+    {
+        return preg_replace_callback(
+            "/url\\(['\"]?file:\\/\\/([^'\"\\)]+\\.ttf)['\"]?\\)/i",
+            function ($matches) {
+                $path = $matches[1];
+                if (file_exists($path)) {
+                    $base64 = base64_encode(file_get_contents($path));
+                    return "url('data:font/truetype;base64,{$base64}')";
+                }
+                return $matches[0];
+            },
+            $html
+        );
+    }
+
+    private function htmlToPdf(string $html, string $format = 'A4', string $orientation = 'portrait'): string
+    {
+        $html = $this->embedFonts($html);
+        return Browsershot::html($html)
+            ->setNodeBinary(trim(shell_exec('which node')))
+            ->setNpmBinary(trim(shell_exec('which npm')))
+            ->format($format)
+            ->landscape($orientation === 'landscape')
+            ->margins(15, 15, 15, 15)
+            ->showBackground()
+            ->waitUntilNetworkIdle()
+            ->pdf();
+    }
+
+    private function generateInvoicePdf(Invoice $invoice): string
+    {
+        $html = view('pdf.invoice_single', compact('invoice'))->render();
+        return $this->htmlToPdf($html);
+    }
+
+    private function generateReceiptPdf(Receipt $receipt): string
+    {
+        $html = view('pdf.receipt_single', compact('receipt'))->render();
+        return $this->htmlToPdf($html);
+    }
+
+    private function generateReportPdf($receipts, $invoices, Carbon $start, Carbon $end): string
+    {
+        $html = view('pdf.report', compact('receipts', 'invoices', 'start', 'end'))->render();
+        return $this->htmlToPdf($html, 'A4', 'landscape');
     }
 }

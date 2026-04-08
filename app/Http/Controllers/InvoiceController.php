@@ -2,9 +2,10 @@
 namespace App\Http\Controllers;
 use App\Models\Invoice; use App\Services\DocumentNumberService; use App\Services\AuditLogService; use App\Services\TelegramService;
 use Illuminate\Http\Request; use Illuminate\Support\Facades\Auth; use Inertia\Inertia;
-use Maatwebsite\Excel\Facades\Excel; use App\Exports\InvoicesExport; use Barryvdh\DomPDF\Facade\Pdf;
+use Maatwebsite\Excel\Facades\Excel; use App\Exports\InvoicesExport; use Spatie\Browsershot\Browsershot;
 class InvoiceController extends Controller {
     public function __construct(private DocumentNumberService $doc, private AuditLogService $audit, private TelegramService $telegram) {}
+    private function embedFonts(string $html): string { return preg_replace_callback("/url\\(['\"]?file:\\/\\/([^'\"\\)]+\\.ttf)['\"]?\\)/i", function ($m) { return file_exists($m[1]) ? "url('data:font/truetype;base64," . base64_encode(file_get_contents($m[1])) . "')" : $m[0]; }, $html); }
     public function index(Request $request) {
         $query = Invoice::with('creator');
         if ($request->from_date) $query->whereDate('date','>=',$request->from_date);
@@ -48,7 +49,10 @@ class InvoiceController extends Controller {
         $invoice->load('creator');
         $this->telegram->sendInvoiceDownloadAlert($invoice);
         $filename = $invoice->invoice_number . '.pdf';
-        return Pdf::loadView('pdf.invoice_single', compact('invoice'))->download($filename);
+        $html = view('pdf.invoice_single', compact('invoice'))->render();
+        $html = $this->embedFonts($html);
+        $pdf = Browsershot::html($html)->setNodeBinary(trim(shell_exec('which node')))->setNpmBinary(trim(shell_exec('which npm')))->format('A4')->margins(15,15,15,15)->showBackground()->waitUntilNetworkIdle()->pdf();
+        return response($pdf, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'attachment; filename="'.$filename.'"']);
     }
     public function exportExcel(Request $request) {
         $this->telegram->sendReportDownloadAlert('Invoice', Auth::user()?->name ?? 'Unknown', 'Excel');
@@ -61,6 +65,9 @@ class InvoiceController extends Controller {
         if ($request->type) $query->where('invoice_type',$request->type);
         $invoices=$query->orderBy('date','desc')->get();
         $this->telegram->sendReportDownloadAlert('Invoice', Auth::user()?->name ?? 'Unknown', 'PDF');
-        return Pdf::loadView('pdf.invoices',compact('invoices'))->download('invoices.pdf');
+        $html = view('pdf.invoices', compact('invoices'))->render();
+        $html = $this->embedFonts($html);
+        $pdf = Browsershot::html($html)->setNodeBinary(trim(shell_exec('which node')))->setNpmBinary(trim(shell_exec('which npm')))->format('A4')->margins(15,15,15,15)->showBackground()->waitUntilNetworkIdle()->pdf();
+        return response($pdf, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'attachment; filename="invoices.pdf"']);
     }
 }

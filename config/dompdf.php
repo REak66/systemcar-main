@@ -110,7 +110,7 @@ return [
         /**
          * Whether to enable font subsetting or not.
          */
-        'enable_font_subsetting' => true,
+        'enable_font_subsetting' => false,
 
         /**
          * The PDF rendering backend to use
@@ -179,7 +179,7 @@ return [
          *
          * @var string
          */
-        'default_font' => 'khmerosbattambang',
+        'default_font' => 'KhmerOS',
 
         /**
          * Image DPI setting
@@ -267,7 +267,7 @@ return [
          *
          * @var bool
          */
-        'enable_remote' => false,
+        'enable_remote' => true,
 
         /**
          * List of allowed remote hosts
