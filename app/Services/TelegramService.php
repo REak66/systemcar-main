@@ -233,7 +233,7 @@ class TelegramService
     {
         $now = Carbon::now()->format('d/m/Y H:i');
 
-        $msg = "🖨️ *{$docType} Printed*\n"
+        $msg = "*{$docType} Printed*\n"
              . "🔢 Doc: `{$docNumber}`\n"
              . "👤 Customer: {$customerName}\n"
              . "👨‍💼 Printed By: {$userName}\n"

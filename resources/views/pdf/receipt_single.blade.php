@@ -45,17 +45,15 @@
             white-space: nowrap;
         }
 
-        .byd-badge {
+        .byd-logo {
             display: inline-block;
-            background: #dc2626;
-            color: #fff;
-            font-weight: bold;
-            font-size: 20px;
-            padding: 2px 7px;
-            letter-spacing: 4px;
-            line-height: 1.1;
-            margin-right: 10px;
             vertical-align: top;
+            margin-right: 10px;
+        }
+
+        .byd-logo img {
+            width: 120px;
+            height: auto;
         }
 
         .company-wrap {
@@ -221,7 +219,9 @@
     {{-- Header --}}
     <div class="header">
         <div class="header-left">
-            <div class="byd-badge">BYD</div>
+            <div class="byd-logo">
+                <img src="file://{{ public_path('images/LogoBYD.png') }}" alt="BYD">
+            </div>
             <div class="company-wrap">
                 <div class="company-name">Huan Ya He Zhong (Cambodia) Trading Co., Ltd</div>
                 <div class="company-sub">Address: Lot No 52 Phum Derntkov, S. Chroychongva, K. Chroychongva, Phnum Penh

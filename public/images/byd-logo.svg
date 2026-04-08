@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 670 300">
+  <!-- B - Three horizontal bars with rounded left ends -->
+  <path d="M0,34 A34,34 0 0,1 34,0 L220,0 L220,68 L34,68 A34,34 0 0,1 0,34 Z" fill="#D1001F"/>
+  <path d="M0,150 A34,34 0 0,1 34,116 L220,116 L220,184 L34,184 A34,34 0 0,1 0,150 Z" fill="#D1001F"/>
+  <path d="M0,266 A34,34 0 0,1 34,232 L220,232 L220,300 L34,300 A34,34 0 0,1 0,266 Z" fill="#D1001F"/>
+  <!-- Y/4 - Geometric center piece -->
+  <path d="M240,0 L365,0 L365,300 L295,300 L295,190 L240,190 L240,130 L295,130 L295,80 L240,80 Z" fill="#D1001F"/>
+  <!-- D - Thick-walled rounded shape -->
+  <path d="M390,0 L530,0 C665,0 665,300 530,300 L390,300 L390,232 L460,232 C560,232 560,68 460,68 L390,68 Z" fill="#D1001F"/>
+</svg>

@@ -118,7 +118,7 @@ export default {
   amount_usd: 'Amount (USD)',
   amount_khr: 'Amount (KHR)',
   company_name: 'Huan Ya He Zhong (Cambodia) Trading Co., Ltd',
-  company_address: 'Address: Lot No 52 Phum Derntkov, S. Chroychongva, K. Chroychongva, Phnum Penh',
+  company_address: 'Address: Lot No 52 Phum Derntkov, S. Chroychongva, K. Chroychongva, Phnom Penh',
   company_phone_line: 'Telephone: 023 886 687 ; Facebook Page: BYD Cambodia',
   bank_name_value: 'ADVANCED BANK OF ASIA LIMITED',
   bank_beneficiary: 'HUAN YA HE ZHONG (CAMBODIA) TRADING CO LTD',
