@@ -163,6 +163,7 @@ export default {
   day_of_month: 'Day of Month (1–31)',
   enabled: 'Enabled',
   disabled: 'Disabled',
+  send_now: 'Send Now',
   sunday: 'Sunday',
   monday: 'Monday',
   tuesday: 'Tuesday',

@@ -5,12 +5,16 @@ namespace App\Http\Controllers;
 use App\Models\TelegramConfig;
 use App\Models\TelegramSchedule;
 use App\Services\AuditLogService;
+use App\Services\TelegramService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class TelegramController extends Controller
 {
-    public function __construct(private AuditLogService $audit) {}
+    public function __construct(
+        private AuditLogService $audit,
+        private TelegramService $telegram,
+    ) {}
 
     public function index()
     {
@@ -66,5 +70,16 @@ class TelegramController extends Controller
         $schedule->update($data);
         $this->audit->log('update', 'TelegramSchedule', $schedule->id, $old, $schedule->fresh()->toArray());
         return back()->with('success', 'Schedule updated.');
+    }
+
+    public function sendNow(TelegramSchedule $schedule)
+    {
+        match ($schedule->report_type) {
+            'daily'   => $this->telegram->sendDailyReport(),
+            'weekly'  => $this->telegram->sendWeeklyReport(),
+            'monthly' => $this->telegram->sendMonthlyReport(),
+        };
+        $this->audit->log('send', 'TelegramSchedule', $schedule->id, [], ['type' => $schedule->report_type]);
+        return back()->with('success', ucfirst($schedule->report_type) . ' report sent.');
     }
 }

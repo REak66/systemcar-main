@@ -163,6 +163,7 @@ export default {
   day_of_month: '每月第几天 (1–31)',
   enabled: '已启用',
   disabled: '已禁用',
+  send_now: '立即发送',
   sunday: '星期日',
   monday: '星期一',
   tuesday: '星期二',

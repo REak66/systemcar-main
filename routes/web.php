@@ -57,6 +57,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/telegram', [TelegramController::class, 'index'])->name('telegram.index');
         Route::post('/telegram', [TelegramController::class, 'store'])->name('telegram.store');
         Route::put('/telegram/schedules/{schedule}', [TelegramController::class, 'updateSchedule'])->name('telegram.schedules.update');
+        Route::post('/telegram/schedules/{schedule}/send-now', [TelegramController::class, 'sendNow'])->name('telegram.schedules.send-now');
         Route::put('/telegram/{telegram}', [TelegramController::class, 'update'])->name('telegram.update');
         Route::delete('/telegram/{telegram}', [TelegramController::class, 'destroy'])->name('telegram.destroy');
 

@@ -291,18 +291,28 @@ class TelegramService
             ->orderBy('date')
             ->get();
 
-        $receiptTotal = $receipts->sum('total_amount');
-        $invoiceTotal = $invoices->sum('grand_total');
-        $vatTotal     = $invoices->sum('vat_amount');
+        $receiptUsd = $receipts->where('currency', 'USD')->sum('total_amount');
+        $receiptKhr = $receipts->where('currency', 'KHR')->sum('total_amount');
+        $invoiceUsd = $invoices->where('currency', 'USD')->sum('grand_total');
+        $invoiceKhr = $invoices->where('currency', 'KHR')->sum('grand_total');
+        $vatTotal   = $invoices->sum('vat_amount');
 
         $pdf = $this->generateReportPdf($receipts, $invoices, $start, $end);
 
         $filename = strtolower($label) . '-report-' . $start->format('Y-m-d') . '.pdf';
 
+        $receiptLine = "🧾 Receipts: {$receipts->count()}";
+        if ($receiptUsd > 0) $receiptLine .= " | USD " . number_format($receiptUsd, 2);
+        if ($receiptKhr > 0) $receiptLine .= " | KHR " . number_format($receiptKhr, 0);
+
+        $invoiceLine = "📋 Invoices: {$invoices->count()}";
+        if ($invoiceUsd > 0) $invoiceLine .= " | USD " . number_format($invoiceUsd, 2);
+        if ($invoiceKhr > 0) $invoiceLine .= " | KHR " . number_format($invoiceKhr, 0);
+
         $caption = "📊 *{$label} Financial Report*\n"
                  . "📅 Period: {$start->format('d/m/Y')} → {$end->format('d/m/Y')}\n"
-                 . "🧾 Receipts: {$receipts->count()} | Total: " . number_format($receiptTotal, 2) . "\n"
-                 . "📋 Invoices: {$invoices->count()} | Total: " . number_format($invoiceTotal, 2) . "\n"
+                 . "{$receiptLine}\n"
+                 . "{$invoiceLine}\n"
                  . "🏷️ VAT Collected: " . number_format($vatTotal, 2) . "\n"
                  . "🕐 Generated: " . Carbon::now()->format('d/m/Y H:i');
 

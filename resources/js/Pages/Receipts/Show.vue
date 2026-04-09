@@ -25,8 +25,12 @@ function fmt(n) {
 
 function fmtDate(d) {
     if (!d) return ''
-    const parts = String(d).split('T')[0].split('-')
-    return `${parts[2]}-${parts[1]}-${parts[0].slice(-2)}`
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const raw = String(d).split('T')[0].split('-')
+    const day = raw[2].padStart(2, '0')
+    const month = months[parseInt(raw[1], 10) - 1]
+    const year = raw[0]
+    return `${day}-${month}-${year}`
 }
 
 const currencySymbol = (c) => c === 'KHR' ? '៛' : '$'
@@ -59,8 +63,8 @@ const paymentStages = [
                         t('export_template')
                     }}</a>
                 <button @click="printReceipt"
-                    class="bg-gray-700 text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800">🖨
-                    {{ t('print') }}</button>
+                    class="bg-gray-700 text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800">{{
+                    t('print') }}</button>
             </div>
 
             <!-- Printable Document -->
@@ -90,43 +94,45 @@ const paymentStages = [
                 </div>
 
 
-                <hr class="border-gray-500 mb-3" />
-
                 <!-- Info Rows -->
-                <table class="w-full border-collapse mb-1">
+                <table class="w-full border-collapse border border-gray-400 mb-0">
                     <tr>
-                        <td class="py-0.5 w-1/2 pr-4">
+                        <td class="py-1 px-2 w-1/2 pr-4">
                             <span class="text-gray-600">បានទទួលពី /Received From:</span>
                             <span class="font-semibold ml-1">{{ receipt.customer_name }}</span>
                         </td>
-                        <td class="py-0.5 text-right">
-                            <span class="text-gray-600">កាលបរិច្ឆេទ /Date :</span>
+                        <td class="py-1 px-2 text-right">
+                            <span class="text-gray-600">កាលបរិច្ឆេទ (Date) :</span>
                             <span class="font-semibold ml-1">{{ fmtDate(receipt.date) }}</span>
                         </td>
                     </tr>
                     <tr>
-                        <td class="py-0.5 pr-4">
+                        <td class="py-1 px-2 pr-4">
                             <span class="text-gray-600">លេខទូរស័ព្ទអតិថិជន/ Customer number :</span>
                             <span class="ml-1">{{ receipt.customer_phone }}</span>
                         </td>
-                        <td class="py-0.5 text-right">
-                            <span class="text-gray-600">សាច់ប្រាក់ /Cash :</span>
+                        <td class="py-1 px-2 text-right">
+                            <span class="text-gray-600">សាច់ប្រាក់ / Cash :</span>
                         </td>
                     </tr>
                     <tr>
-                        <td class="py-0.5 pr-4">
+                        <td class="py-0.5 px-2 pr-4">
                             <span class="text-gray-600">អ្នកលក់/Sales:</span>
                             <span class="ml-1">{{ receipt.creator?.name }}</span>
                         </td>
-                        <td class="py-0.5 text-right">
+                        <td class="py-0.5 px-2 text-right">
                             <span class="text-gray-600">ការផ្ទេរប្រាក់តាមធនាគារ /Bank Transfer: ✓</span>
                             <span class="font-semibold ml-1">{{ receipt.bank_reference }}</span>
                         </td>
                     </tr>
+                    <tr style="height:22px;">
+                        <td class="px-2"></td>
+                        <td class="px-2"></td>
+                    </tr>
                 </table>
 
                 <!-- Payment Stage Checkboxes -->
-                <div class="flex items-center gap-5 border border-gray-400 px-3 py-1.5 mb-3">
+                <div class="flex items-center gap-5 border border-gray-400 border-t-0 px-3 py-1.5 mb-3">
                     <template v-for="stage in paymentStages" :key="stage.id">
                         <label class="flex items-center gap-1 cursor-default">
                             <span
@@ -148,7 +154,7 @@ const paymentStages = [
                                     class="text-gray-500">បរិយាយមុខទំនិញ</span></th>
                             <th class="border border-gray-400 py-1.5 px-1.5 text-center w-14">Quantity<br><span
                                     class="text-gray-500">បរិមាណ</span></th>
-                            <th class="border border-gray-400 py-1.5 px-1.5 text-center w-20">Unit Price<br><span
+                            <th class="border border-gray-400 py-1.5 px-1.5 text-center w-28">Unit Price<br><span
                                     class="text-gray-500">ថ្លៃឯកតា</span></th>
                             <th class="border border-gray-400 py-1.5 px-1.5 text-center w-24">Amount<br><span
                                     class="text-gray-500">ថ្លៃទំនិញ</span></th>
@@ -165,7 +171,8 @@ const paymentStages = [
                             </td>
                             <td class="border-l border-r border-gray-400 px-1.5 text-center align-top pt-1.5">{{
                                 receipt.quantity }}</td>
-                            <td class="border-l border-r border-gray-400 px-1.5 text-right align-top pt-1.5">
+                            <td
+                                class="border-l border-r border-gray-400 px-1.5 text-right align-top pt-1.5 whitespace-nowrap">
                                 <span v-if="Number(receipt.unit_price) > 0">{{ currencySymbol(receipt.currency) }} {{
                                     fmt(receipt.unit_price) }}</span>
                             </td>
@@ -213,8 +220,8 @@ const paymentStages = [
                             </td>
                         </tr>
                         <tr>
-                            <td colspan="4" class="border border-gray-400 py-1.5 px-2 text-right font-semibold">ចំនួនបង់
-                                (Balance to Pay)</td>
+                            <td colspan="4" class="border border-gray-400 py-1.5 px-2 text-right font-semibold">
+                                ទឹកប្រាក់ដែលត្រូវបង់ (Balance to Pay)</td>
                             <td class="border border-gray-400 py-1.5 px-2 text-right font-bold">
                                 {{ currencySymbol(receipt.currency) }} {{ fmt(receipt.total_amount) }}
                             </td>
@@ -232,19 +239,19 @@ const paymentStages = [
                 <!-- Signatures -->
                 <div class="flex justify-between mt-10">
                     <div class="text-center w-52">
-                        <p class="font-semibold mb-1">ទទួលដោយ</p>
+                        <p class="font-semibold mb-1">ទទួលដោយ:</p>
                         <p class="mb-10">Received By:</p>
                         <div class="border-t border-gray-400 pt-1 text-left">
-                            <p>ឈ្មោះ (名名): {{ receipt.creator?.name }}</p>
-                            <p>កាលបរិច្ឆេទ (日期): {{ fmtDate(receipt.date) }}</p>
+                            <p>ឈ្មោះ: {{ receipt.creator?.name }}</p>
+                            <p>កាលបរិច្ឆេទ: {{ fmtDate(receipt.date) }}</p>
                         </div>
                     </div>
                     <div class="text-center w-52">
-                        <p class="font-semibold mb-1">ហត្ថលេខាអតិថិជន</p>
+                        <p class="font-semibold mb-1">ហត្ថលេខាអតិថិជន:</p>
                         <p class="mb-10">{{ t('customers_signature') }}</p>
                         <div class="border-t border-gray-400 pt-1 text-left">
-                            <p>ឈ្មោះ (名名):</p>
-                            <p>កាលបរិច្ឆេទ (日期):</p>
+                            <p>ឈ្មោះ:</p>
+                            <p>កាលបរិច្ឆេទ:</p>
                         </div>
                     </div>
                 </div>
@@ -275,6 +282,12 @@ const paymentStages = [
         border: none !important;
         box-shadow: none !important;
         padding: 12mm !important;
+    }
+
+    .bg-red-600 {
+        background-color: #dc2626 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
     }
 }
 </style>
