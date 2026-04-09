@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { Link, usePage } from '@inertiajs/vue3'
 import { useI18n } from 'vue-i18n'
 import {
@@ -22,9 +22,36 @@ const page = usePage()
 
 const sidebarOpen = ref(false)
 const langMenuOpen = ref(false)
+const langMenuRef = ref(null)
 
 const user = computed(() => page.props.auth?.user)
 const flash = computed(() => page.props.flash)
+
+// Auto-dismiss flash messages
+const showSuccess = ref(false)
+const showError = ref(false)
+let successTimer = null
+let errorTimer = null
+
+watch(
+    () => flash.value?.success,
+    (val) => {
+        clearTimeout(successTimer)
+        showSuccess.value = !!val
+        if (val) successTimer = setTimeout(() => { showSuccess.value = false }, 4000)
+    },
+    { immediate: true },
+)
+
+watch(
+    () => flash.value?.error,
+    (val) => {
+        clearTimeout(errorTimer)
+        showError.value = !!val
+        if (val) errorTimer = setTimeout(() => { showError.value = false }, 5000)
+    },
+    { immediate: true },
+)
 
 const locales = [
     { code: 'en', label: 'English' },
@@ -37,6 +64,24 @@ function switchLocale(code) {
     localStorage.setItem('locale', code)
     langMenuOpen.value = false
 }
+
+function handleClickOutside(e) {
+    if (langMenuRef.value && !langMenuRef.value.contains(e.target)) {
+        langMenuOpen.value = false
+    }
+}
+
+onMounted(() => {
+    const saved = localStorage.getItem('locale')
+    if (saved) locale.value = saved
+    document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+    document.removeEventListener('click', handleClickOutside)
+    clearTimeout(successTimer)
+    clearTimeout(errorTimer)
+})
 
 const navItems = computed(() => {
     const items = [
@@ -71,19 +116,21 @@ function isActive(match) {
             <!-- Brand -->
             <div class="flex items-center gap-2 h-16 px-4 bg-blue-950 flex-shrink-0">
                 <span class="font-bold text-white text-lg">{{ t('app_name') }}</span>
-                <button class="ml-auto text-blue-300 hover:text-white lg:hidden" @click="sidebarOpen = false">
+                <button class="ml-auto text-blue-300 hover:text-white lg:hidden" aria-label="Close sidebar"
+                    @click="sidebarOpen = false">
                     <XMarkIcon class="w-5 h-5" />
                 </button>
             </div>
 
             <!-- Nav -->
             <nav class="flex-1 overflow-y-auto py-4 px-2">
-                <Link v-for="item in navItems" :key="item.match" :href="item.href" :class="[
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm font-medium transition-colors',
-                    isActive(item.match)
-                        ? 'bg-blue-700 text-white'
-                        : 'text-blue-200 hover:bg-blue-800 hover:text-white',
-                ]" @click="sidebarOpen = false">
+                <Link v-for="item in navItems" :key="item.match" :href="item.href"
+                    :aria-current="isActive(item.match) ? 'page' : undefined" :class="[
+                        'flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm font-medium transition-colors',
+                        isActive(item.match)
+                            ? 'bg-blue-700 text-white'
+                            : 'text-blue-200 hover:bg-blue-800 hover:text-white',
+                    ]" @click="sidebarOpen = false">
                     <component :is="item.icon" class="w-5 h-5 flex-shrink-0" />
                     {{ item.name }}
                 </Link>
@@ -108,7 +155,8 @@ function isActive(match) {
         <div class="flex-1 flex flex-col lg:ml-64 min-w-0">
             <!-- Top header -->
             <header class="sticky top-0 z-10 h-16 bg-white shadow-sm flex items-center gap-4 px-4 lg:px-6">
-                <button class="text-gray-500 hover:text-gray-700 lg:hidden" @click="sidebarOpen = true">
+                <button class="text-gray-500 hover:text-gray-700 lg:hidden" aria-label="Open sidebar"
+                    @click="sidebarOpen = true">
                     <Bars3Icon class="w-6 h-6" />
                 </button>
 
@@ -117,16 +165,17 @@ function isActive(match) {
                 </h1>
 
                 <!-- Language switcher -->
-                <div class="relative">
+                <div ref="langMenuRef" class="relative">
                     <button class="flex items-center gap-1 text-gray-600 hover:text-gray-900 text-sm px-2 py-1 rounded"
+                        :aria-expanded="langMenuOpen" aria-haspopup="listbox" aria-label="Switch language"
                         @click="langMenuOpen = !langMenuOpen">
                         <GlobeAltIcon class="w-4 h-4" />
                         <span class="hidden sm:block uppercase font-medium">{{ locale }}</span>
                         <ChevronDownIcon class="w-3 h-3" />
                     </button>
-                    <div v-if="langMenuOpen"
+                    <div v-if="langMenuOpen" role="listbox"
                         class="absolute right-0 mt-1 w-32 bg-white shadow-lg rounded-lg border py-1 z-50">
-                        <button v-for="l in locales" :key="l.code"
+                        <button v-for="l in locales" :key="l.code" role="option" :aria-selected="locale === l.code"
                             :class="['w-full text-left px-3 py-2 text-sm hover:bg-gray-100', locale === l.code ? 'font-semibold text-blue-600' : 'text-gray-700']"
                             @click="switchLocale(l.code)">
                             {{ l.label }}
@@ -145,15 +194,19 @@ function isActive(match) {
             <!-- Flash messages -->
             <div class="mx-4 lg:mx-6 mt-4 space-y-2">
                 <Transition name="flash">
-                    <div v-if="flash?.success"
-                        class="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg text-sm">
-                        ✓ {{ flash.success }}
+                    <div v-if="showSuccess && flash?.success" role="status"
+                        class="flex items-center justify-between bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg text-sm">
+                        <span>✓ {{ flash.success }}</span>
+                        <button class="ml-4 text-green-600 hover:text-green-900" aria-label="Dismiss"
+                            @click="showSuccess = false">✕</button>
                     </div>
                 </Transition>
                 <Transition name="flash">
-                    <div v-if="flash?.error"
-                        class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">
-                        ✗ {{ flash.error }}
+                    <div v-if="showError && flash?.error" role="alert"
+                        class="flex items-center justify-between bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">
+                        <span>✗ {{ flash.error }}</span>
+                        <button class="ml-4 text-red-600 hover:text-red-900" aria-label="Dismiss"
+                            @click="showError = false">✕</button>
                     </div>
                 </Transition>
             </div>
@@ -165,3 +218,16 @@ function isActive(match) {
         </div>
     </div>
 </template>
+
+<style scoped>
+.flash-enter-active,
+.flash-leave-active {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.flash-enter-from,
+.flash-leave-to {
+    opacity: 0;
+    transform: translateY(-6px);
+}
+</style>
