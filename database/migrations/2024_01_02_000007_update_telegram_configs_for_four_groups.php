@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -18,7 +19,7 @@ return new class extends Migration
 
         // Migrate existing single chat_id into document_chat_id
         if (Schema::hasColumn('telegram_configs', 'chat_id')) {
-            \DB::statement('UPDATE telegram_configs SET document_chat_id = chat_id WHERE chat_id IS NOT NULL AND chat_id != \'\'');
+            DB::statement('UPDATE telegram_configs SET document_chat_id = chat_id WHERE chat_id IS NOT NULL AND chat_id != \'\'');
         }
 
         Schema::table('telegram_configs', function (Blueprint $table) {
@@ -40,7 +41,7 @@ return new class extends Migration
         });
 
         // Restore chat_id from document_chat_id
-        \DB::statement('UPDATE telegram_configs SET chat_id = document_chat_id WHERE document_chat_id IS NOT NULL AND document_chat_id != \'\'');
+        DB::statement('UPDATE telegram_configs SET chat_id = document_chat_id WHERE document_chat_id IS NOT NULL AND document_chat_id != \'\'');
 
         Schema::table('telegram_configs', function (Blueprint $table) {
             $table->dropColumn(['daily_chat_id', 'weekly_chat_id', 'monthly_chat_id', 'document_chat_id']);

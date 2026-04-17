@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -18,14 +19,14 @@ return new class extends Migration
         });
 
         // Step 2 – assign orphan rows to the first existing config (if any)
-        $firstConfig = \DB::table('telegram_configs')->orderBy('id')->first();
+        $firstConfig = DB::table('telegram_configs')->orderBy('id')->first();
         if ($firstConfig) {
-            \DB::table('telegram_schedules')
+            DB::table('telegram_schedules')
                ->whereNull('telegram_config_id')
                ->update(['telegram_config_id' => $firstConfig->id]);
         } else {
             // No configs yet – delete orphan global schedules
-            \DB::table('telegram_schedules')->whereNull('telegram_config_id')->delete();
+            DB::table('telegram_schedules')->whereNull('telegram_config_id')->delete();
         }
 
         // Step 3 – drop the unique constraint so each branch can have daily/weekly/monthly
