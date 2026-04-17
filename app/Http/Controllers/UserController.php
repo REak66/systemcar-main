@@ -5,7 +5,7 @@ use Illuminate\Http\Request; use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 class UserController extends Controller {
     public function __construct(private AuditLogService $audit) {}
-    public function index(Request $request) { return Inertia::render('Users/Index',['users'=>User::withTrashed()->orderBy('created_at','desc')->paginate(20)->withQueryString()]); }
+    public function index(Request $request) { $perPage = in_array($request->integer('per_page', 10), [10, 25, 50]) ? $request->integer('per_page', 10) : 10; return Inertia::render('Users/Index',['users'=>User::withTrashed()->orderBy('created_at','desc')->paginate($perPage)->withQueryString()]); }
     public function create() { return Inertia::render('Users/Create'); }
     public function store(Request $request) {
         $data = $request->validate(['name'=>'required|string|max:255','username'=>'required|string|max:255|unique:users','email'=>'required|email|unique:users','password'=>'required|string|min:8|confirmed','role'=>'required|in:admin,cashier','is_active'=>'boolean']);

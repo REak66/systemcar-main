@@ -104,32 +104,32 @@ function isActive(match) {
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-100 flex">
+    <div class="min-h-screen bg-slate-50 flex">
         <!-- Mobile overlay -->
         <div v-if="sidebarOpen" class="fixed inset-0 z-20 bg-black/50 lg:hidden" @click="sidebarOpen = false" />
 
         <!-- Sidebar -->
         <aside :class="[
-            'fixed inset-y-0 left-0 z-30 w-64 flex flex-col bg-blue-900 transition-transform duration-200',
+            'fixed inset-y-0 left-0 z-30 w-64 flex flex-col bg-blue-950 transition-transform duration-300',
             sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         ]">
             <!-- Brand -->
-            <div class="flex items-center gap-2 h-16 px-4 bg-blue-950 flex-shrink-0">
-                <span class="font-bold text-white text-lg">{{ t('app_name') }}</span>
-                <button class="ml-auto text-blue-300 hover:text-white lg:hidden" aria-label="Close sidebar"
+            <div class="flex items-center gap-3 h-16 px-5 bg-black/20 border-b border-white/10 flex-shrink-0">
+                <span class="font-bold text-white tracking-wide">{{ t('app_name') }}</span>
+                <button class="ml-auto text-white/60 hover:text-white lg:hidden" aria-label="Close sidebar"
                     @click="sidebarOpen = false">
                     <XMarkIcon class="w-5 h-5" />
                 </button>
             </div>
 
             <!-- Nav -->
-            <nav class="flex-1 overflow-y-auto py-4 px-2">
+            <nav class="flex-1 overflow-y-auto py-3 px-3 space-y-0.5">
                 <Link v-for="item in navItems" :key="item.match" :href="item.href"
                     :aria-current="isActive(item.match) ? 'page' : undefined" :class="[
-                        'flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm font-medium transition-colors',
+                        'sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
                         isActive(item.match)
-                            ? 'bg-blue-700 text-white'
-                            : 'text-blue-200 hover:bg-blue-800 hover:text-white',
+                            ? 'bg-blue-600 text-white'
+                            : 'text-blue-100/70 hover:bg-white/10 hover:text-white',
                     ]" @click="sidebarOpen = false">
                     <component :is="item.icon" class="w-5 h-5 flex-shrink-0" />
                     {{ item.name }}
@@ -137,15 +137,15 @@ function isActive(match) {
             </nav>
 
             <!-- User info -->
-            <div class="p-3 border-t border-blue-800 flex-shrink-0">
-                <div class="flex items-center gap-3 px-2 py-1">
+            <div class="p-4 border-t border-white/10 flex-shrink-0 bg-black/15">
+                <div class="flex items-center gap-3 px-1">
                     <div
-                        class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                        class="w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
                         {{ user?.name?.charAt(0)?.toUpperCase() }}
                     </div>
                     <div class="min-w-0 flex-1">
-                        <p class="text-white text-sm font-medium truncate">{{ user?.name }}</p>
-                        <p class="text-blue-300 text-xs capitalize">{{ user?.role }}</p>
+                        <p class="text-white text-sm font-semibold truncate">{{ user?.name }}</p>
+                        <p class="text-blue-300/80 text-xs capitalize">{{ user?.role }}</p>
                     </div>
                 </div>
             </div>
@@ -154,29 +154,31 @@ function isActive(match) {
         <!-- Main -->
         <div class="flex-1 flex flex-col lg:ml-64 min-w-0">
             <!-- Top header -->
-            <header class="sticky top-0 z-10 h-16 bg-white shadow-sm flex items-center gap-4 px-4 lg:px-6">
-                <button class="text-gray-500 hover:text-gray-700 lg:hidden" aria-label="Open sidebar"
+            <header
+                class="sticky top-0 z-10 h-16 bg-white border-b border-slate-200 flex items-center gap-4 px-4 lg:px-6">
+                <button class="text-slate-500 hover:text-slate-700 lg:hidden" aria-label="Open sidebar"
                     @click="sidebarOpen = true">
                     <Bars3Icon class="w-6 h-6" />
                 </button>
 
-                <h1 class="flex-1 font-semibold text-gray-800 text-lg truncate">
+                <h1 class="flex-1 font-semibold text-slate-800 text-base truncate">
                     <slot name="title" />
                 </h1>
 
                 <!-- Language switcher -->
                 <div ref="langMenuRef" class="relative">
-                    <button class="flex items-center gap-1 text-gray-600 hover:text-gray-900 text-sm px-2 py-1 rounded"
+                    <button
+                        class="flex items-center gap-1 text-slate-600 hover:text-slate-900 text-sm px-2 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
                         :aria-expanded="langMenuOpen" aria-haspopup="listbox" aria-label="Switch language"
                         @click="langMenuOpen = !langMenuOpen">
                         <GlobeAltIcon class="w-4 h-4" />
-                        <span class="hidden sm:block uppercase font-medium">{{ locale }}</span>
+                        <span class="hidden sm:block uppercase font-semibold text-xs">{{ locale }}</span>
                         <ChevronDownIcon class="w-3 h-3" />
                     </button>
                     <div v-if="langMenuOpen" role="listbox"
-                        class="absolute right-0 mt-1 w-32 bg-white shadow-lg rounded-lg border py-1 z-50">
+                        class="absolute right-0 mt-1 w-32 bg-white rounded-xl border border-slate-200 py-1 z-50">
                         <button v-for="l in locales" :key="l.code" role="option" :aria-selected="locale === l.code"
-                            :class="['w-full text-left px-3 py-2 text-sm hover:bg-gray-100', locale === l.code ? 'font-semibold text-blue-600' : 'text-gray-700']"
+                            :class="['w-full text-left px-3 py-2 text-sm hover:bg-slate-50 transition-colors', locale === l.code ? 'font-semibold text-blue-600' : 'text-slate-700']"
                             @click="switchLocale(l.code)">
                             {{ l.label }}
                         </button>
@@ -185,49 +187,38 @@ function isActive(match) {
 
                 <!-- Logout -->
                 <Link :href="route('logout')" method="post" as="button"
-                    class="flex items-center gap-1 text-gray-600 hover:text-red-600 text-sm px-2 py-1 rounded transition-colors">
+                    class="flex items-center gap-1.5 text-slate-600 hover:text-red-600 text-sm px-2 py-1.5 rounded-lg hover:bg-red-50 transition-all duration-150">
                     <ArrowRightOnRectangleIcon class="w-5 h-5" />
                     <span class="hidden sm:block">{{ t('logout') }}</span>
                 </Link>
             </header>
 
             <!-- Flash messages -->
-            <div class="mx-4 lg:mx-6 mt-4 space-y-2">
+            <div class="px-4 lg:px-6 mt-4 space-y-2">
                 <Transition name="flash">
                     <div v-if="showSuccess && flash?.success" role="status"
-                        class="flex items-center justify-between bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg text-sm">
+                        class="flex items-center justify-between bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-xl text-sm">
                         <span>✓ {{ flash.success }}</span>
-                        <button class="ml-4 text-green-600 hover:text-green-900" aria-label="Dismiss"
+                        <button class="ml-4 text-green-500 hover:text-green-800 transition-colors" aria-label="Dismiss"
                             @click="showSuccess = false">✕</button>
                     </div>
                 </Transition>
                 <Transition name="flash">
                     <div v-if="showError && flash?.error" role="alert"
-                        class="flex items-center justify-between bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">
+                        class="flex items-center justify-between bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl text-sm">
                         <span>✗ {{ flash.error }}</span>
-                        <button class="ml-4 text-red-600 hover:text-red-900" aria-label="Dismiss"
+                        <button class="ml-4 text-red-500 hover:text-red-800 transition-colors" aria-label="Dismiss"
                             @click="showError = false">✕</button>
                     </div>
                 </Transition>
             </div>
 
             <!-- Page content -->
-            <main class="flex-1 p-4 lg:p-6 animate-fade-up">
-                <slot />
-            </main>
+            <Transition name="page" mode="out-in">
+                <main :key="page.component" class="flex-1 p-4 lg:p-6">
+                    <slot />
+                </main>
+            </Transition>
         </div>
     </div>
 </template>
-
-<style scoped>
-.flash-enter-active,
-.flash-leave-active {
-    transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.flash-enter-from,
-.flash-leave-to {
-    opacity: 0;
-    transform: translateY(-6px);
-}
-</style>

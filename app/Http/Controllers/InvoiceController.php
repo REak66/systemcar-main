@@ -5,18 +5,37 @@ use Illuminate\Http\Request; use Illuminate\Support\Facades\Auth; use Inertia\In
 use Maatwebsite\Excel\Facades\Excel; use App\Exports\InvoicesExport; use Spatie\Browsershot\Browsershot;
 class InvoiceController extends Controller {
     public function __construct(private DocumentNumberService $doc, private AuditLogService $audit, private TelegramService $telegram) {}
-    private function embedFonts(string $html): string { return preg_replace_callback("/url\\(['\"]?file:\\/\\/([^'\"\\)]+\\.ttf)['\"]?\\)/i", function ($m) { return file_exists($m[1]) ? "url('data:font/truetype;base64," . base64_encode(file_get_contents($m[1])) . "')" : $m[0]; }, $html); }
+    private function embedFonts(string $html): string {
+        $html = preg_replace_callback("/url\\(['\"]?file:\\/\\/([^'\"\\)]+\\.(?:ttf|woff2?|otf))['\"]?\\)/i", function ($m) {
+            $path = $m[1];
+            if (!file_exists($path)) return $m[0];
+            $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+            $mime = match($ext) { 'woff' => 'font/woff', 'woff2' => 'font/woff2', 'otf' => 'font/opentype', default => 'font/truetype' };
+            return "url('data:{$mime};base64," . base64_encode(file_get_contents($path)) . "')";
+        }, $html);
+        $html = preg_replace_callback("/src=['\"]file:\\/\\/([^'\"]+\\.(?:png|jpe?g|gif|webp|svg))['\"]?/i", function ($m) {
+            $path = $m[1];
+            if (!file_exists($path)) return $m[0];
+            $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+            $mime = match($ext) { 'jpg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'webp' => 'image/webp', 'svg' => 'image/svg+xml', default => 'image/png' };
+            return "src='data:{$mime};base64," . base64_encode(file_get_contents($path)) . "'";
+        }, $html);
+        return $html;
+    }
     public function index(Request $request) {
         $query = Invoice::with('creator');
         if ($request->from_date) $query->whereDate('date','>=',$request->from_date);
         if ($request->to_date) $query->whereDate('date','<=',$request->to_date);
         if ($request->type) $query->where('invoice_type',$request->type);
         if ($request->search) $query->where(fn($q)=>$q->where('customer_name','like',"%{$request->search}%")->orWhere('invoice_number','like',"%{$request->search}%")->orWhere('car_model','like',"%{$request->search}%"));
-        return Inertia::render('Invoices/Index',['invoices'=>$query->orderBy('created_at','desc')->paginate(20)->withQueryString(),'filters'=>$request->only(['from_date','to_date','search','type'])]);
+        $perPage = in_array($request->integer('per_page', 10), [10, 25, 50]) ? $request->integer('per_page', 10) : 10;
+        return Inertia::render('Invoices/Index',['invoices'=>$query->orderBy('created_at','desc')->paginate($perPage)->withQueryString(),'filters'=>$request->only(['from_date','to_date','search','type','per_page'])]);
     }
     public function create(Request $request) {
         $type=$request->type??'car_sale';
-        return Inertia::render('Invoices/Create',['invoiceNumber'=>$this->doc->generateInvoiceNumber($type),'type'=>$type]);
+        $customerNames=Invoice::distinct()->orderBy('customer_name')->pluck('customer_name')->filter()->values();
+        $carModels=Invoice::distinct()->orderBy('car_model')->pluck('car_model')->filter()->values();
+        return Inertia::render('Invoices/Create',['invoiceNumber'=>$this->doc->generateInvoiceNumber($type),'type'=>$type,'customerNames'=>$customerNames,'carModels'=>$carModels]);
     }
     public function store(Request $request) {
         $data = $request->validate(['invoice_number'=>'required|string|unique:invoices','invoice_type'=>'required|in:car_sale,service','date'=>'required|date','customer_name'=>'required|string|max:255','customer_address'=>'nullable|string|max:500','customer_phone'=>'nullable|string|max:50','car_model'=>'required|string|max:255','unit_price'=>'required|numeric|min:0','currency'=>'required|in:USD,KHR','quantity'=>'required|integer|min:1','sub_total'=>'required|numeric|min:0','with_vat'=>'boolean','vat_rate'=>'required|numeric|min:0','vat_amount'=>'required|numeric|min:0','grand_total'=>'required|numeric|min:0','payment_category'=>'required|in:booking,full_payment,down_payment,installment,service_payment,other','bank_reference'=>'required|string|max:500','notes'=>'nullable|string']);
@@ -27,7 +46,11 @@ class InvoiceController extends Controller {
         return redirect()->route('invoices.index')->with('success','Invoice created successfully.');
     }
     public function show(Invoice $invoice) { $invoice->load('creator'); return Inertia::render('Invoices/Show',compact('invoice')); }
-    public function edit(Invoice $invoice) { return Inertia::render('Invoices/Edit',compact('invoice')); }
+    public function edit(Invoice $invoice) {
+        $customerNames=Invoice::distinct()->orderBy('customer_name')->pluck('customer_name')->filter()->values();
+        $carModels=Invoice::distinct()->orderBy('car_model')->pluck('car_model')->filter()->values();
+        return Inertia::render('Invoices/Edit',['invoice'=>$invoice,'customerNames'=>$customerNames,'carModels'=>$carModels]);
+    }
     public function update(Request $request, Invoice $invoice) {
         $data = $request->validate(['date'=>'required|date','customer_name'=>'required|string|max:255','customer_address'=>'nullable|string|max:500','customer_phone'=>'nullable|string|max:50','car_model'=>'required|string|max:255','unit_price'=>'required|numeric|min:0','currency'=>'required|in:USD,KHR','quantity'=>'required|integer|min:1','sub_total'=>'required|numeric|min:0','with_vat'=>'boolean','vat_rate'=>'required|numeric|min:0','vat_amount'=>'required|numeric|min:0','grand_total'=>'required|numeric|min:0','payment_category'=>'required|in:booking,full_payment,down_payment,installment,service_payment,other','bank_reference'=>'required|string|max:500','notes'=>'nullable|string']);
         $old=$invoice->toArray(); $invoice->update($data);

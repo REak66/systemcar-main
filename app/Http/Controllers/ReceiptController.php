@@ -5,15 +5,36 @@ use Illuminate\Http\Request; use Illuminate\Support\Facades\Auth; use Inertia\In
 use Maatwebsite\Excel\Facades\Excel; use App\Exports\ReceiptsExport; use App\Exports\ReceiptTemplateExport; use App\Imports\ReceiptsImport; use Spatie\Browsershot\Browsershot;
 class ReceiptController extends Controller {
     public function __construct(private DocumentNumberService $doc, private AuditLogService $audit, private TelegramService $telegram) {}
-    private function embedFonts(string $html): string { return preg_replace_callback("/url\\(['\"]?file:\\/\\/([^'\"\\)]+\\.ttf)['\"]?\\)/i", function ($m) { return file_exists($m[1]) ? "url('data:font/truetype;base64," . base64_encode(file_get_contents($m[1])) . "')" : $m[0]; }, $html); }
+    private function embedFonts(string $html): string {
+        $html = preg_replace_callback("/url\\(['\"]?file:\\/\\/([^'\"\\)]+\\.(?:ttf|woff2?|otf))['\"]?\\)/i", function ($m) {
+            $path = $m[1];
+            if (!file_exists($path)) return $m[0];
+            $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+            $mime = match($ext) { 'woff' => 'font/woff', 'woff2' => 'font/woff2', 'otf' => 'font/opentype', default => 'font/truetype' };
+            return "url('data:{$mime};base64," . base64_encode(file_get_contents($path)) . "')";
+        }, $html);
+        $html = preg_replace_callback("/src=['\"]file:\\/\\/([^'\"]+\\.(?:png|jpe?g|gif|webp|svg))['\"]?/i", function ($m) {
+            $path = $m[1];
+            if (!file_exists($path)) return $m[0];
+            $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+            $mime = match($ext) { 'jpg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'webp' => 'image/webp', 'svg' => 'image/svg+xml', default => 'image/png' };
+            return "src='data:{$mime};base64," . base64_encode(file_get_contents($path)) . "'";
+        }, $html);
+        return $html;
+    }
     public function index(Request $request) {
         $query = Receipt::with('creator');
         if ($request->from_date) $query->whereDate('date','>=',$request->from_date);
         if ($request->to_date) $query->whereDate('date','<=',$request->to_date);
         if ($request->search) $query->where(fn($q)=>$q->where('customer_name','like',"%{$request->search}%")->orWhere('receipt_number','like',"%{$request->search}%")->orWhere('car_model','like',"%{$request->search}%"));
-        return Inertia::render('Receipts/Index',['receipts'=>$query->orderBy('created_at','desc')->paginate(20)->withQueryString(),'filters'=>$request->only(['from_date','to_date','search'])]);
+        $perPage = in_array($request->integer('per_page', 10), [10, 25, 50]) ? $request->integer('per_page', 10) : 10;
+        return Inertia::render('Receipts/Index',['receipts'=>$query->orderBy('created_at','desc')->paginate($perPage)->withQueryString(),'filters'=>$request->only(['from_date','to_date','search','per_page'])]);
     }
-    public function create() { return Inertia::render('Receipts/Create',['receiptNumber'=>$this->doc->generateReceiptNumber()]); }
+    public function create() {
+        $customerNames=Receipt::distinct()->orderBy('customer_name')->pluck('customer_name')->filter()->values();
+        $carModels=Receipt::distinct()->orderBy('car_model')->pluck('car_model')->filter()->values();
+        return Inertia::render('Receipts/Create',['receiptNumber'=>$this->doc->generateReceiptNumber(),'customerNames'=>$customerNames,'carModels'=>$carModels]);
+    }
     public function store(Request $request) {
         $data = $request->validate(['receipt_number'=>'required|string|unique:receipts','date'=>'required|date','customer_name'=>'required|string|max:255','customer_phone'=>'nullable|string|max:50','car_model'=>'required|string|max:255','unit_price'=>'required|numeric|min:0','currency'=>'required|in:USD,KHR','quantity'=>'required|integer|min:1','total_amount'=>'required|numeric|min:0','payment_category'=>'required|in:booking,full_payment,down_payment,installment,service_payment,other','bank_reference'=>'required|string|max:500','notes'=>'nullable|string']);
         $data['created_by']=Auth::id();
@@ -23,7 +44,11 @@ class ReceiptController extends Controller {
         return redirect()->route('receipts.index')->with('success','Receipt created successfully.');
     }
     public function show(Receipt $receipt) { $receipt->load('creator'); return Inertia::render('Receipts/Show',compact('receipt')); }
-    public function edit(Receipt $receipt) { return Inertia::render('Receipts/Edit',compact('receipt')); }
+    public function edit(Receipt $receipt) {
+        $customerNames=Receipt::distinct()->orderBy('customer_name')->pluck('customer_name')->filter()->values();
+        $carModels=Receipt::distinct()->orderBy('car_model')->pluck('car_model')->filter()->values();
+        return Inertia::render('Receipts/Edit',['receipt'=>$receipt,'customerNames'=>$customerNames,'carModels'=>$carModels]);
+    }
     public function update(Request $request, Receipt $receipt) {
         $data = $request->validate(['date'=>'required|date','customer_name'=>'required|string|max:255','customer_phone'=>'nullable|string|max:50','car_model'=>'required|string|max:255','unit_price'=>'required|numeric|min:0','currency'=>'required|in:USD,KHR','quantity'=>'required|integer|min:1','total_amount'=>'required|numeric|min:0','payment_category'=>'required|in:booking,full_payment,down_payment,installment,service_payment,other','bank_reference'=>'required|string|max:500','notes'=>'nullable|string']);
         $old=$receipt->toArray(); $receipt->update($data);

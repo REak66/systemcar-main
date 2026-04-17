@@ -18,7 +18,7 @@ const emit = defineEmits(['confirm', 'cancel'])
         v-if="show"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       >
-        <div class="modal-dialog bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+        <div class="modal-dialog bg-white rounded-xl max-w-sm w-full p-6">
           <h3 class="text-lg font-semibold text-gray-800 mb-2">{{ title }}</h3>
           <p class="text-gray-600 text-sm mb-6">{{ message }}</p>
           <div class="flex gap-3 justify-end">

@@ -8,8 +8,9 @@ class ReportController extends Controller {
     public function index(Request $request) {
         $type=$request->type??'daily';
         [$start,$end]=$this->range($type,$request);
-        $receipts=Receipt::whereBetween('date',[$start,$end])->orderBy('date','desc')->paginate(20,['*'],'receipt_page')->withQueryString();
-        $invoices=Invoice::whereBetween('date',[$start,$end])->orderBy('date','desc')->paginate(20,['*'],'invoice_page')->withQueryString();
+        $perPage = in_array($request->integer('per_page', 10), [10, 25, 50]) ? $request->integer('per_page', 10) : 10;
+        $receipts=Receipt::whereBetween('date',[$start,$end])->orderBy('date','desc')->paginate($perPage,['*'],'receipt_page')->withQueryString();
+        $invoices=Invoice::whereBetween('date',[$start,$end])->orderBy('date','desc')->paginate($perPage,['*'],'invoice_page')->withQueryString();
         $receiptAmount=Receipt::whereBetween('date',[$start,$end])->sum('total_amount');
         $invoiceAmount=Invoice::whereBetween('date',[$start,$end])->sum('grand_total');
         $summary=['total_receipts'=>Receipt::whereBetween('date',[$start,$end])->count(),'total_invoices'=>Invoice::whereBetween('date',[$start,$end])->count(),'receipt_amount'=>$receiptAmount,'invoice_amount'=>$invoiceAmount,'total_amount'=>$receiptAmount+$invoiceAmount,'vat_total'=>Invoice::whereBetween('date',[$start,$end])->sum('vat_amount')];

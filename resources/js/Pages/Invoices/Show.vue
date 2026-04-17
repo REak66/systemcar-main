@@ -52,22 +52,24 @@ const paymentStages = [
 
         <div class="max-w-3xl mx-auto">
             <!-- Actions (hidden on print) -->
-            <div class="no-print flex gap-3 mb-4">
+            <div class="no-print flex flex-wrap gap-3 mb-4">
                 <Link :href="route('invoices.index')"
-                    class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-200">← {{ t('back') }}
-                </Link>
+                    class="inline-flex items-center bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors">
+                    ← {{ t('back') }}</Link>
                 <Link :href="route('invoices.edit', invoice.id)"
-                    class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">{{ t('edit') }}</Link>
+                    class="inline-flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                    {{ t('edit') }}</Link>
                 <a :href="route('invoices.download', invoice.id)"
-                    class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700">{{ t('download')
-                    }}</a>
+                    class="inline-flex items-center bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors">{{
+                        t('download') }}</a>
                 <button @click="printInvoice"
-                    class="bg-gray-700 text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800">{{
+                    class="inline-flex items-center bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors">{{
                         t('print') }}</button>
             </div>
 
             <!-- Printable Document -->
-            <div id="printable" class="bg-white border border-gray-300 p-8 text-xs font-sans leading-snug">
+            <div id="printable"
+                class="bg-white border border-slate-300 p-8 text-xs font-sans leading-snug text-gray-900">
 
                 <!-- Page Header -->
                 <div class="flex items-start mb-1">

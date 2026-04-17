@@ -19,7 +19,7 @@ function submit() {
   <Head :title="t('forgot_password')" />
 
   <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 to-blue-700 p-4">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+    <div class="bg-white rounded-2xl w-full max-w-md p-8">
       <div class="text-center mb-8">
         <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
           <span class="text-3xl">🚗</span>
@@ -39,7 +39,7 @@ function submit() {
             v-model="form.email"
             type="email"
             autocomplete="email"
-            class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             :placeholder="t('email')"
           />
           <p v-if="form.errors.email" class="text-red-600 text-xs mt-1">{{ form.errors.email }}</p>

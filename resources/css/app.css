@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+@theme {
+    --font-sans: "Ubuntu", ui-sans-serif, system-ui, sans-serif;
+}
+
 /* ==========================================
    Keyframes
    ========================================== */
@@ -72,10 +76,10 @@
    Modal Transition
    ========================================== */
 .modal-enter-active {
-    transition: opacity 0.2s ease;
+    transition: opacity 0.3s ease;
 }
 .modal-leave-active {
-    transition: opacity 0.15s ease;
+    transition: opacity 0.25s ease;
 }
 .modal-enter-from,
 .modal-leave-to {
@@ -85,9 +89,268 @@
 .modal-enter-active .modal-dialog {
     transition:
         transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
-        opacity 0.2s ease;
+        opacity 0.25s ease;
 }
 .modal-enter-from .modal-dialog {
     transform: scale(0.85);
     opacity: 0;
+}
+
+/* ==========================================
+   PrimeVue White Theme Overrides
+   ========================================== */
+
+/* ---- DatePicker ---- */
+.p-datepicker,
+.p-datepicker-panel {
+    background: #fff !important;
+    border-radius: 0.75rem !important;
+}
+.p-datepicker-header {
+    background: #fff !important;
+    color: #111827 !important;
+    border-bottom: 1px solid #f3f4f6 !important;
+}
+.p-datepicker-title button,
+.p-datepicker-prev-button,
+.p-datepicker-next-button {
+    color: #374151 !important;
+    background: transparent !important;
+}
+.p-datepicker-day-cell .p-datepicker-day {
+    color: #374151 !important;
+    background: transparent !important;
+}
+.p-datepicker-day-cell .p-datepicker-day:hover {
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+}
+.p-datepicker-day-cell .p-datepicker-day.p-datepicker-day-selected {
+    background: #2563eb !important;
+    color: #fff !important;
+}
+.p-datepicker-day-cell .p-datepicker-day.p-datepicker-day-today {
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+}
+.p-datepicker-day-name {
+    color: #6b7280 !important;
+}
+.p-datepicker input.p-inputtext,
+.p-datepicker .p-inputtext,
+.p-inputtext {
+    background: #fff !important;
+    color: #111827 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 0.5rem !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+/* ---- AutoComplete ---- */
+.p-autocomplete .p-inputtext {
+    background: #fff !important;
+    color: #111827 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 0.5rem !important;
+    box-shadow: none !important;
+}
+.p-autocomplete-list {
+    background: #fff !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 0.5rem !important;
+    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.08) !important;
+}
+.p-autocomplete-option {
+    color: #111827 !important;
+    background: #fff !important;
+}
+.p-autocomplete-option:hover,
+.p-autocomplete-option.p-focus {
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+}
+.p-autocomplete-overlay {
+    display: none !important;
+}
+
+/* ---- ToggleButton ---- */
+.p-togglebutton {
+    background: #f3f4f6 !important;
+    color: #374151 !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 0.5rem !important;
+}
+.p-togglebutton.p-togglebutton-checked {
+    background: #2563eb !important;
+    color: #fff !important;
+    border-color: #2563eb !important;
+}
+
+/* ---- ToggleSwitch ---- */
+.p-toggleswitch .p-toggleswitch-slider {
+    background: #d1d5db !important;
+}
+.p-toggleswitch.p-toggleswitch-checked .p-toggleswitch-slider {
+    background: #2563eb !important;
+}
+
+/* ---- SplitButton ---- */
+.p-splitbutton .p-button {
+    border-radius: 0.5rem !important;
+}
+.p-splitbutton-menu,
+.p-tieredmenu {
+    background: #fff !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 0.5rem !important;
+    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.08) !important;
+}
+.p-tieredmenu .p-menuitem-content {
+    color: #111827 !important;
+    background: #fff !important;
+}
+.p-tieredmenu .p-menuitem-content:hover,
+.p-tieredmenu .p-menuitem.p-focus > .p-menuitem-content {
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+}
+.p-tieredmenu .p-menuitem-icon {
+    color: #6b7280 !important;
+}
+
+/* ---- ConfirmPopup ---- */
+.p-confirmpopup {
+    background: #fff !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 0.75rem !important;
+    box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.12) !important;
+    color: #111827 !important;
+}
+.p-confirmpopup-content {
+    color: #374151 !important;
+}
+.p-confirmpopup-accept-button {
+    background: #ef4444 !important;
+    border-color: #ef4444 !important;
+    color: #fff !important;
+}
+.p-confirmpopup-reject-button {
+    background: #f3f4f6 !important;
+    border-color: #e5e7eb !important;
+    color: #374151 !important;
+}
+
+/* ---- Skeleton ---- */
+.p-skeleton {
+    background: #e5e7eb !important;
+    border-radius: 0.25rem !important;
+}
+.p-skeleton::after {
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.6),
+        transparent
+    ) !important;
+}
+
+/* ---- ProgressSpinner ---- */
+.p-progressspinner-circle {
+    stroke: #fff !important;
+    animation: p-progressspinner-dash 1.5s ease-in-out infinite !important;
+}
+
+/* ==========================================
+   Page Transition (Inertia navigation)
+   ========================================== */
+.page-enter-active {
+    transition:
+        opacity 0.22s ease,
+        transform 0.22s ease;
+}
+.page-leave-active {
+    transition: opacity 0.13s ease;
+}
+.page-enter-from {
+    opacity: 0;
+    transform: translateY(10px);
+}
+.page-leave-to {
+    opacity: 0;
+}
+
+/* ==========================================
+   Button / Link Press Feedback
+   ========================================== */
+
+/*
+ * Applies a subtle scale-down to all native app buttons/links on press.
+ * Excludes PrimeVue components (identified by `.p-` class prefix) and
+ * disabled elements so the UI still feels natural.
+ */
+button:not(:disabled):not([class*="p-"]):active,
+a:not([class*="p-"]):active {
+    transform: scale(0.96);
+    transition: transform 0.08s ease !important;
+}
+
+/* Sidebar nav links get a slightly stronger press effect */
+.sidebar-nav-link:active {
+    transform: scale(0.97);
+    transition: transform 0.08s ease !important;
+}
+
+/* ==========================================
+   Staggered list entrance (page content)
+   ========================================== */
+@keyframes staggerFadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stagger-item {
+    opacity: 0;
+    animation: staggerFadeUp 0.35s ease forwards;
+}
+.stagger-item:nth-child(1) {
+    animation-delay: 0.04s;
+}
+.stagger-item:nth-child(2) {
+    animation-delay: 0.08s;
+}
+.stagger-item:nth-child(3) {
+    animation-delay: 0.12s;
+}
+.stagger-item:nth-child(4) {
+    animation-delay: 0.16s;
+}
+.stagger-item:nth-child(5) {
+    animation-delay: 0.2s;
+}
+.stagger-item:nth-child(6) {
+    animation-delay: 0.24s;
+}
+.stagger-item:nth-child(7) {
+    animation-delay: 0.28s;
+}
+.stagger-item:nth-child(8) {
+    animation-delay: 0.32s;
+}
+
+/* ==========================================
+   Table Row Entrance Animation
+   Each <tr> sets --row-index via inline style
+   Max delay capped at 0.5s for long tables
+   ========================================== */
+.table-row-animate {
+    opacity: 0;
+    animation: staggerFadeUp 0.3s ease forwards;
+    animation-delay: calc(min(var(--row-index, 0) * 0.04s, 0.5s));
 }

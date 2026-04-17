@@ -19,31 +19,46 @@ class TelegramController extends Controller
     public function index()
     {
         return Inertia::render('Telegram/Index', [
-            'configs'   => TelegramConfig::all(),
-            'schedules' => TelegramSchedule::orderBy('id')->get(),
+            'configs' => TelegramConfig::with([
+                'schedules' => fn ($q) => $q->orderByRaw("FIELD(report_type,'daily','weekly','monthly')"),
+            ])->get(),
         ]);
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name'      => 'required|string|max:255',
-            'bot_token' => 'required|string',
-            'chat_id'   => 'required|string',
-            'is_active' => 'boolean',
+            'name'             => 'required|string|max:255',
+            'daily_chat_id'    => 'nullable|string|max:255',
+            'weekly_chat_id'   => 'nullable|string|max:255',
+            'monthly_chat_id'  => 'nullable|string|max:255',
+            'document_chat_id' => 'nullable|string|max:255',
+            'is_active'        => 'boolean',
         ]);
         $c = TelegramConfig::create($data);
+
+        // Auto-create the 3 default schedules for this new branch
+        foreach ([
+            ['report_type' => 'daily',   'time' => '18:00', 'day_of_week' => null, 'day_of_month' => null],
+            ['report_type' => 'weekly',  'time' => '08:00', 'day_of_week' => 1,    'day_of_month' => null],
+            ['report_type' => 'monthly', 'time' => '08:00', 'day_of_week' => null, 'day_of_month' => 1],
+        ] as $sched) {
+            $c->schedules()->create(array_merge($sched, ['is_enabled' => false]));
+        }
+
         $this->audit->log('create', 'TelegramConfig', $c->id, [], $c->toArray());
-        return back()->with('success', 'Telegram config saved.');
+        return back()->with('success', 'Branch created.');
     }
 
     public function update(Request $request, TelegramConfig $telegram)
     {
         $data = $request->validate([
-            'name'      => 'required|string|max:255',
-            'bot_token' => 'required|string',
-            'chat_id'   => 'required|string',
-            'is_active' => 'boolean',
+            'name'             => 'required|string|max:255',
+            'daily_chat_id'    => 'nullable|string|max:255',
+            'weekly_chat_id'   => 'nullable|string|max:255',
+            'monthly_chat_id'  => 'nullable|string|max:255',
+            'document_chat_id' => 'nullable|string|max:255',
+            'is_active'        => 'boolean',
         ]);
         $old = $telegram->toArray();
         $telegram->update($data);
@@ -74,12 +89,20 @@ class TelegramController extends Controller
 
     public function sendNow(TelegramSchedule $schedule)
     {
+        $config = $schedule->telegramConfig;
+        if (!$config) {
+            return back()->withErrors(['error' => 'No branch config found for this schedule.']);
+        }
+
         match ($schedule->report_type) {
-            'daily'   => $this->telegram->sendDailyReport(),
-            'weekly'  => $this->telegram->sendWeeklyReport(),
-            'monthly' => $this->telegram->sendMonthlyReport(),
+            'daily'   => $this->telegram->sendDailyReport($config),
+            'weekly'  => $this->telegram->sendWeeklyReport($config),
+            'monthly' => $this->telegram->sendMonthlyReport($config),
         };
-        $this->audit->log('send', 'TelegramSchedule', $schedule->id, [], ['type' => $schedule->report_type]);
-        return back()->with('success', ucfirst($schedule->report_type) . ' report sent.');
+        $this->audit->log('send', 'TelegramSchedule', $schedule->id, [], [
+            'type'   => $schedule->report_type,
+            'branch' => $config->name,
+        ]);
+        return back()->with('success', ucfirst($schedule->report_type) . ' report sent for ' . $config->name . '.');
     }
 }

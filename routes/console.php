@@ -11,20 +11,27 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 // Load report schedules dynamically from the database.
-// Each row in telegram_schedules can be toggled and timed by the admin via the UI.
+// Each row is now tied to a specific branch (telegram_config_id).
 try {
-    TelegramSchedule::where('is_enabled', true)->get()->each(function ($s) {
-        $job = match ($s->report_type) {
-            'daily'   => Schedule::call(fn () => app(TelegramService::class)->sendDailyReport())
-                            ->dailyAt($s->time),
-            'weekly'  => Schedule::call(fn () => app(TelegramService::class)->sendWeeklyReport())
-                            ->weeklyOn($s->day_of_week ?? 1, $s->time),
-            'monthly' => Schedule::call(fn () => app(TelegramService::class)->sendMonthlyReport())
-                            ->monthlyOn($s->day_of_month ?? 1, $s->time),
-            default   => null,
-        };
-        $job?->name("telegram:{$s->report_type}-report")->withoutOverlapping();
-    });
+    TelegramSchedule::where('is_enabled', true)
+        ->with('telegramConfig')
+        ->get()
+        ->each(function ($s) {
+            $config = $s->telegramConfig;
+            if (!$config || !$config->is_active) return;
+
+            $configId = $s->telegram_config_id;
+            $job = match ($s->report_type) {
+                'daily'   => Schedule::call(fn () => app(TelegramService::class)->sendDailyReport($config))
+                                ->dailyAt($s->time),
+                'weekly'  => Schedule::call(fn () => app(TelegramService::class)->sendWeeklyReport($config))
+                                ->weeklyOn($s->day_of_week ?? 1, $s->time),
+                'monthly' => Schedule::call(fn () => app(TelegramService::class)->sendMonthlyReport($config))
+                                ->monthlyOn($s->day_of_month ?? 1, $s->time),
+                default   => null,
+            };
+            $job?->name("telegram:{$s->report_type}-report-config{$configId}")->withoutOverlapping();
+        });
 } catch (\Throwable) {
     // Database may not be available (e.g. during fresh install / migrations).
 }

@@ -11,23 +11,26 @@ use Spatie\Browsershot\Browsershot;
 
 class TelegramService
 {
-    private function broadcast(string $msg): void
+    // ─── Core helpers ────────────────────────────────────────────────────────
+
+    private function token(): string
     {
-        $configs = TelegramConfig::where('is_active', true)->get();
-        foreach ($configs as $c) {
-            $this->send($c->bot_token, $c->chat_id, $msg);
-        }
+        return config('services.telegram.bot_token', '');
     }
 
-    private function send(string $token, string $chatId, string $msg): void
+    /**
+     * Send a text message to a specific chat ID using the global bot token.
+     */
+    private function send(string $chatId, string $msg): void
     {
+        if (empty($chatId)) return;
         try {
             $client = Http::timeout(10);
             $proxy  = config('services.telegram.proxy');
             if ($proxy) {
                 $client = $client->withOptions(['proxy' => $proxy]);
             }
-            $response = $client->post("https://api.telegram.org/bot{$token}/sendMessage", [
+            $response = $client->post("https://api.telegram.org/bot{$this->token()}/sendMessage", [
                 'chat_id'    => $chatId,
                 'text'       => $msg,
                 'parse_mode' => 'Markdown',
@@ -40,16 +43,12 @@ class TelegramService
         }
     }
 
-    private function broadcastDocument(string $filename, string $pdfContent, string $caption): void
+    /**
+     * Send a PDF document to a specific chat ID using the global bot token.
+     */
+    private function sendDocument(string $chatId, string $filename, string $pdfContent, string $caption): void
     {
-        $configs = TelegramConfig::where('is_active', true)->get();
-        foreach ($configs as $c) {
-            $this->sendDocument($c->bot_token, $c->chat_id, $filename, $pdfContent, $caption);
-        }
-    }
-
-    private function sendDocument(string $token, string $chatId, string $filename, string $pdfContent, string $caption): void
-    {
+        if (empty($chatId)) return;
         try {
             $client = Http::timeout(30);
             $proxy  = config('services.telegram.proxy');
@@ -57,7 +56,7 @@ class TelegramService
                 $client = $client->withOptions(['proxy' => $proxy]);
             }
             $response = $client->attach('document', $pdfContent, $filename, ['Content-Type' => 'application/pdf'])
-                ->post("https://api.telegram.org/bot{$token}/sendDocument", [
+                ->post("https://api.telegram.org/bot{$this->token()}/sendDocument", [
                     'chat_id'    => $chatId,
                     'caption'    => $caption,
                     'parse_mode' => 'Markdown',
@@ -68,6 +67,117 @@ class TelegramService
         } catch (\Exception $e) {
             Log::error('Telegram sendDocument failed: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Broadcast a text alert to the "document" group of all active branches.
+     * Used for delete / print / import alerts.
+     */
+    private function broadcast(string $msg): void
+    {
+        TelegramConfig::where('is_active', true)
+            ->whereNotNull('document_chat_id')
+            ->where('document_chat_id', '!=', '')
+            ->get()
+            ->each(fn ($c) => $this->send($c->document_chat_id, $msg));
+    }
+
+    /**
+     * Broadcast a PDF document to the "document" group of all active branches.
+     * Used for receipt / invoice created, updated, downloaded alerts.
+     */
+    private function broadcastDocument(string $filename, string $pdfContent, string $caption): void
+    {
+        TelegramConfig::where('is_active', true)
+            ->whereNotNull('document_chat_id')
+            ->where('document_chat_id', '!=', '')
+            ->get()
+            ->each(fn ($c) => $this->sendDocument($c->document_chat_id, $filename, $pdfContent, $caption));
+    }
+
+    /**
+     * Broadcast a PDF report to the report-type group of all active branches.
+     * $groupField is one of: 'daily_chat_id', 'weekly_chat_id', 'monthly_chat_id'
+     */
+    private function broadcastReport(string $groupField, string $filename, string $pdfContent, string $caption): void
+    {
+        TelegramConfig::where('is_active', true)
+            ->whereNotNull($groupField)
+            ->where($groupField, '!=', '')
+            ->get()
+            ->each(fn ($c) => $this->sendDocument($c->$groupField, $filename, $pdfContent, $caption));
+    }
+
+    // ─── Scheduled PDF Reports (per-branch) ──────────────────────────────────
+
+    /**
+     * Build and send a financial report PDF to one specific branch config.
+     */
+    private function buildAndSendReport(
+        Carbon $start,
+        Carbon $end,
+        string $label,
+        TelegramConfig $config,
+        string $chatIdField
+    ): void {
+        $chatId = $config->$chatIdField;
+        if (empty($chatId)) return;
+
+        $receipts = Receipt::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->orderBy('date')
+            ->get();
+
+        $invoices = Invoice::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->orderBy('date')
+            ->get();
+
+        $receiptUsd = $receipts->where('currency', 'USD')->sum('total_amount');
+        $receiptKhr = $receipts->where('currency', 'KHR')->sum('total_amount');
+        $invoiceUsd = $invoices->where('currency', 'USD')->sum('grand_total');
+        $invoiceKhr = $invoices->where('currency', 'KHR')->sum('grand_total');
+        $vatTotal   = $invoices->sum('vat_amount');
+
+        $pdf      = $this->generateReportPdf($receipts, $invoices, $start, $end);
+        $filename = strtolower($label) . '-report-' . $start->format('Y-m-d') . '.pdf';
+
+        $receiptLine = "🧾 Receipts: {$receipts->count()}";
+        if ($receiptUsd > 0) $receiptLine .= " | USD " . number_format($receiptUsd, 2);
+        if ($receiptKhr > 0) $receiptLine .= " | KHR " . number_format($receiptKhr, 0);
+
+        $invoiceLine = "📋 Invoices: {$invoices->count()}";
+        if ($invoiceUsd > 0) $invoiceLine .= " | USD " . number_format($invoiceUsd, 2);
+        if ($invoiceKhr > 0) $invoiceLine .= " | KHR " . number_format($invoiceKhr, 0);
+
+        $caption = "📊 *{$label} Financial Report*\n"
+                 . "🏢 Branch: {$config->name}\n"
+                 . "📅 Period: {$start->format('d/m/Y')} → {$end->format('d/m/Y')}\n"
+                 . "{$receiptLine}\n"
+                 . "{$invoiceLine}\n"
+                 . "🏷️ VAT Collected: " . number_format($vatTotal, 2) . "\n"
+                 . "🕐 Generated: " . Carbon::now()->format('d/m/Y H:i');
+
+        $this->sendDocument($chatId, $filename, $pdf, $caption);
+    }
+
+    public function sendDailyReport(TelegramConfig $config): void
+    {
+        $start = Carbon::yesterday()->startOfDay();
+        $end   = Carbon::yesterday()->endOfDay();
+        $this->buildAndSendReport($start, $end, 'Daily', $config, 'daily_chat_id');
+    }
+
+    public function sendWeeklyReport(TelegramConfig $config): void
+    {
+        $start = Carbon::now()->subWeek()->startOfWeek();
+        $end   = Carbon::now()->subWeek()->endOfWeek();
+        $this->buildAndSendReport($start, $end, 'Weekly', $config, 'weekly_chat_id');
+    }
+
+    public function sendMonthlyReport(TelegramConfig $config): void
+    {
+        $start = Carbon::now()->subMonth()->startOfMonth();
+        $end   = Carbon::now()->subMonth()->endOfMonth();
+        $this->buildAndSendReport($start, $end, 'Monthly', $config, 'monthly_chat_id');
     }
 
     public function sendInvoiceCreatedAlert(Invoice $invoice): void
@@ -279,83 +389,33 @@ class TelegramService
         $this->broadcast($msg);
     }
 
-    // ─── Scheduled PDF Reports ───────────────────────────────────────────────
-
-    private function buildAndBroadcastReport(Carbon $start, Carbon $end, string $label): void
-    {
-        $receipts = Receipt::whereBetween('date', [$start->toDateString(), $end->toDateString()])
-            ->orderBy('date')
-            ->get();
-
-        $invoices = Invoice::whereBetween('date', [$start->toDateString(), $end->toDateString()])
-            ->orderBy('date')
-            ->get();
-
-        $receiptUsd = $receipts->where('currency', 'USD')->sum('total_amount');
-        $receiptKhr = $receipts->where('currency', 'KHR')->sum('total_amount');
-        $invoiceUsd = $invoices->where('currency', 'USD')->sum('grand_total');
-        $invoiceKhr = $invoices->where('currency', 'KHR')->sum('grand_total');
-        $vatTotal   = $invoices->sum('vat_amount');
-
-        $pdf = $this->generateReportPdf($receipts, $invoices, $start, $end);
-
-        $filename = strtolower($label) . '-report-' . $start->format('Y-m-d') . '.pdf';
-
-        $receiptLine = "🧾 Receipts: {$receipts->count()}";
-        if ($receiptUsd > 0) $receiptLine .= " | USD " . number_format($receiptUsd, 2);
-        if ($receiptKhr > 0) $receiptLine .= " | KHR " . number_format($receiptKhr, 0);
-
-        $invoiceLine = "📋 Invoices: {$invoices->count()}";
-        if ($invoiceUsd > 0) $invoiceLine .= " | USD " . number_format($invoiceUsd, 2);
-        if ($invoiceKhr > 0) $invoiceLine .= " | KHR " . number_format($invoiceKhr, 0);
-
-        $caption = "📊 *{$label} Financial Report*\n"
-                 . "📅 Period: {$start->format('d/m/Y')} → {$end->format('d/m/Y')}\n"
-                 . "{$receiptLine}\n"
-                 . "{$invoiceLine}\n"
-                 . "🏷️ VAT Collected: " . number_format($vatTotal, 2) . "\n"
-                 . "🕐 Generated: " . Carbon::now()->format('d/m/Y H:i');
-
-        $this->broadcastDocument($filename, $pdf, $caption);
-    }
-
-    public function sendDailyReport(): void
-    {
-        $start = Carbon::yesterday()->startOfDay();
-        $end   = Carbon::yesterday()->endOfDay();
-        $this->buildAndBroadcastReport($start, $end, 'Daily');
-    }
-
-    public function sendWeeklyReport(): void
-    {
-        $start = Carbon::now()->subWeek()->startOfWeek();
-        $end   = Carbon::now()->subWeek()->endOfWeek();
-        $this->buildAndBroadcastReport($start, $end, 'Weekly');
-    }
-
-    public function sendMonthlyReport(): void
-    {
-        $start = Carbon::now()->subMonth()->startOfMonth();
-        $end   = Carbon::now()->subMonth()->endOfMonth();
-        $this->buildAndBroadcastReport($start, $end, 'Monthly');
-    }
-
     // ─── PDF Helpers ─────────────────────────────────────────────────────────
 
     private function embedFonts(string $html): string
     {
-        return preg_replace_callback(
-            "/url\\(['\"]?file:\\/\\/([^'\"\\)]+\\.ttf)['\"]?\\)/i",
+        $html = preg_replace_callback(
+            "/url\\(['\"]?file:\\/\\/([^'\"\\)]+\\.(?:ttf|woff2?|otf))['\"]?\\)/i",
             function ($matches) {
                 $path = $matches[1];
-                if (file_exists($path)) {
-                    $base64 = base64_encode(file_get_contents($path));
-                    return "url('data:font/truetype;base64,{$base64}')";
-                }
-                return $matches[0];
+                if (!file_exists($path)) return $matches[0];
+                $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+                $mime = match($ext) { 'woff' => 'font/woff', 'woff2' => 'font/woff2', 'otf' => 'font/opentype', default => 'font/truetype' };
+                return "url('data:{$mime};base64," . base64_encode(file_get_contents($path)) . "')";
             },
             $html
         );
+        $html = preg_replace_callback(
+            "/src=['\"]file:\\/\\/([^'\"]+\\.(?:png|jpe?g|gif|webp|svg))['\"]?/i",
+            function ($matches) {
+                $path = $matches[1];
+                if (!file_exists($path)) return $matches[0];
+                $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+                $mime = match($ext) { 'jpg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'webp' => 'image/webp', 'svg' => 'image/svg+xml', default => 'image/png' };
+                return "src='data:{$mime};base64," . base64_encode(file_get_contents($path)) . "'";
+            },
+            $html
+        );
+        return $html;
     }
 
     private function htmlToPdf(string $html, string $format = 'A4', string $orientation = 'portrait'): string

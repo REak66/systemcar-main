@@ -16,18 +16,19 @@ function fmt(n) {
 </script>
 
 <template>
+
   <Head :title="t('dashboard')" />
   <AppLayout>
     <template #title>{{ t('dashboard') }}</template>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-      <StatCard :value="stats.total_receipts" :label="t('total_receipts')" />
-      <StatCard :value="stats.total_invoices" :label="t('total_invoices')" />
-      <StatCard :value="stats.today_receipts" :label="t('today_receipts')" />
-      <StatCard :value="stats.today_invoices" :label="t('today_invoices')" />
-      <StatCard :value="fmt(stats.total_amount_today) + ' USD'" :label="t('total_today')" />
-      <StatCard :value="stats.monthly_receipts" :label="t('monthly_receipts')" />
-      <StatCard :value="stats.monthly_invoices" :label="t('monthly_invoices')" />
+      <StatCard :value="stats.total_receipts" :label="t('total_receipts')" color="blue" />
+      <StatCard :value="stats.total_invoices" :label="t('total_invoices')" color="indigo" />
+      <StatCard :value="stats.today_receipts" :label="t('today_receipts')" color="green" />
+      <StatCard :value="stats.today_invoices" :label="t('today_invoices')" color="purple" />
+      <StatCard :value="fmt(stats.total_amount_today) + ' USD'" :label="t('total_today')" color="yellow" />
+      <StatCard :value="stats.monthly_receipts" :label="t('monthly_receipts')" color="blue" />
+      <StatCard :value="stats.monthly_invoices" :label="t('monthly_invoices')" color="indigo" />
     </div>
   </AppLayout>
 </template>
